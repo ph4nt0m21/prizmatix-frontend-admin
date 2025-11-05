@@ -1,0 +1,398 @@
+@import '../../../styles/variables';
+@import '../../../styles/mixins';
+
+// Core step container styles
+.stepContainer {
+  width: 100%;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 120px;
+  padding-top: 48px;
+  padding-bottom: 48px;
+}
+
+.stepHeader {
+  display: flex;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #f0f0f0;
+  gap: 12px;
+}
+
+.stepTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+}
+
+.stepIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.emptyStateTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: #374151;
+  margin: 0 0 4px 0;
+}
+
+.emptyStateDescription {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0 0 24px 0;
+}
+
+.createCouponButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 44px;
+  padding: 0 24px;
+  background-color: #ffffff;
+  color: #4f46e5;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+
+  svg {
+    margin-right: 8px;
+    color: #818cf8;
+  }
+
+  &:hover {
+    border-color: #d1d5db;
+    background-color: #f9fafb;
+  }
+}
+
+.formSection {
+  padding: 0;
+}
+
+// Discount Codes container styles
+.emptyDiscountCodesContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 240px;
+  background-color: #f9fafb;
+  border: 1px dashed #d1d5db;
+  border-radius: 8px;
+  padding: 32px;
+  text-align: center;
+}
+
+.discountCodesContainer {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
+
+.discountCodeTableHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background-color: #f3f4f6;
+  padding: 12px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #4b5563;
+  text-transform: uppercase;
+}
+
+.discountCodeItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid #e5e7eb;
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background-color: #f9fafb;
+  }
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.discountCode { flex: 2; min-width: 150px; }
+.discountType { flex: 1; min-width: 120px; }
+.discountValue { flex: 1; min-width: 100px; }
+.discountUsageLimit { flex: 1; min-width: 100px; }
+.ticketsApplicable { flex: 2; min-width: 200px; }
+.discountActions { flex: 0 0 50px; justify-content: center; }
+
+.inlineInput, .inlineSelect {
+  width: 100%;
+  padding: 8px 4px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background-color: transparent;
+  font-size: 14px;
+  -moz-appearance: textfield;
+
+  &::placeholder { color: #9ca3af; }
+
+  &::-webkit-outer-spin-button,
+  &::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  
+  &:hover { border-color: #e5e7eb; }
+  
+  &:focus {
+    outline: none;
+    border-color: #7C3AED;
+    background-color: white;
+  }
+}
+
+.inlineSelect {
+  padding: 8px 4px;
+  text-align: left;
+}
+
+.actionMenuContainer {
+  position: relative;
+}
+
+.actionMenu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background-color: white;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+  min-width: 120px;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+
+  button {
+    background: none;
+    border: none;
+    padding: 8px;
+    text-align: left;
+    cursor: pointer;
+    border-radius: 4px;
+    font-size: 14px;
+    color: #333;
+    &:hover { background-color: #f3f4f6; }
+  }
+}
+
+.deleteAction {
+  color: #ef4444;
+  &:hover {
+    color: #ef4444 !important;
+    background-color: #fee2e2 !important;
+  }
+}
+
+.discountActionButton {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  border-radius: 4px;
+  color: #6b7280;
+  cursor: pointer;
+  
+  &:hover {
+    background-color: #f3f4f6;
+    color: #333;
+  }
+}
+
+.addDiscountCodeRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  border-top: 1px solid #e5e7eb;
+  background-color: #f9fafb;
+}
+
+.addDiscountCodeInlineButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  padding: 0 16px;
+  background-color: white;
+  color: #7C3AED;
+  border: 1px solid #7C3AED;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  
+  svg { margin-right: 8px; }
+  
+  &:hover { background-color: rgba(124, 58, 237, 0.05); }
+}
+
+.customDropdown {
+  position: relative;
+  width: 100%;
+}
+
+.dropdownButton {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background-color: white;
+  font-size: 14px;
+  text-align: left;
+  color: #333;
+  cursor: pointer;
+
+  span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+.dropdownMenu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 10;
+  width: 100%;
+  max-height: 200px;
+  overflow-y: auto;
+  margin-top: 4px;
+  padding: 8px;
+  background-color: white;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: #333;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 4px;
+
+  &:hover { background-color: #f3f4f6; }
+}
+
+.checkboxInput {
+  accent-color: #7c3aed;
+  width: 16px;
+  height: 16px;
+}
+
+/* Add these new column widths */
+.discountStatus { flex: 0 0 80px; text-align: center; }
+.discountActions { 
+  flex: 0 0 100px; 
+  display: flex;
+  gap: 8px;
+  justify-content: center; 
+}
+
+
+/* Add these styles for the toggle switch */
+.toggleSwitch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+
+  input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+
+    &:checked + .slider {
+      background-color: #7C3AED;
+    }
+
+    &:checked + .slider:before {
+      transform: translateX(20px);
+    }
+
+    &:disabled + .slider {
+      background-color: #e5e7eb;
+      cursor: not-allowed;
+    }
+  }
+
+  .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+    border-radius: 24px;
+
+    &:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
+    }
+  }
+}
+
+// ===================================
+// ===== Mobile Responsive Styles ====
+// ===================================
+@media (max-width: 768px) {
+  .stepContainer {
+    padding: 24px 16px;
+  }
+
+  // This wrapper will contain the table and allow it to scroll horizontally
+  .tableWrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch; // Smooth scrolling on iOS
+  }
+
+  // This inner container will have a minimum width to force the scrollbar to appear
+  .tableContent {
+    min-width: 800px;
+  }
+
+  .inlineInput, .inlineSelect, .dropdownButton {
+    text-align: left; // Align text to the left on mobile for easier reading
+  }
+}

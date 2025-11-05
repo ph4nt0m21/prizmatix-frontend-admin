@@ -1,0 +1,216 @@
+@import '../../../styles/variables';
+@import '../../../styles/mixins';
+
+.overviewContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Event Info Header */
+.eventInfoHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.eventName {
+  font-size: 24px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.statusBadge {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  
+  &.live { background-color: #D1FAE5; color: #065F46; }
+  &.draft { background-color: #FEF3C7; color: #92400E; }
+  &.past { background-color: #F3F4F6; color: #4B5563; }
+}
+
+.eventMeta {
+  font-size: 14px;
+  color: #6B7280;
+  margin: 4px 0 0 0;
+}
+
+.timeframeSelector {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #D1D5DB;
+  background-color: #FFFFFF;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+/* Stats Grid */
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+}
+
+.statCard {
+  background: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 12px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.statTitle {
+  font-size: 14px;
+  color: #6B7280;
+  margin: 0;
+}
+
+.statValue {
+  font-size: 28px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  flex-grow: 1; /* Pushes footer down */
+}
+
+.statTotal {
+  font-size: 16px;
+  font-weight: 500;
+  color: #6B7280;
+}
+
+.statFooter {
+  display: flex;
+  justify-content: flex-end; /* Align link to the right */
+  align-items: center;
+  margin-top: 16px;
+}
+
+.breakdownLink {
+  font-size: 13px;
+  font-weight: 500;
+  color: #4F46E5;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  &:hover { text-decoration: underline; }
+}
+
+.progressBarContainer {
+  height: 8px;
+  background-color: #F3F4F6;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-top: 8px;
+}
+
+.progressBar {
+  height: 100%;
+  background-color: #6D28D9;
+  border-radius: 8px;
+}
+
+/* Single column card for details */
+.detailCard {
+  background: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 12px;
+  padding: 24px;
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+
+  h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #111827;
+    margin: 0;
+  }
+}
+
+.cardSubtitle {
+  font-size: 14px;
+  color: #6B7280;
+  margin: 0;
+}
+
+.ticketTable {
+  margin-top: 16px;
+}
+
+.ticketTableHeader, .ticketTableRow {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  padding: 12px 0;
+  border-bottom: 1px solid #F3F4F6;
+  font-size: 14px;
+  &:last-child { border-bottom: none; }
+}
+
+.ticketTableHeader {
+  color: #6B7280;
+  font-weight: 500;
+}
+
+.ticketTableRow {
+  color: #111827;
+  font-weight: 500;
+}
+
+.salesHeaderInfo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.chartContainer {
+  margin-top: 16px;
+}
+
+.chartValue {
+  font-size: 28px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 8px;
+}
+
+.loadingContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 48px;
+  color: #6B7280;
+}
+
+/* Responsive Breakpoints */
+@media (max-width: 1200px) {
+  .statsGrid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 768px) {
+  .statsGrid { grid-template-columns: 1fr; }
+  .eventInfoHeader {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

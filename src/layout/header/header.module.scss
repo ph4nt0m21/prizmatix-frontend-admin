@@ -1,0 +1,196 @@
+@import '../../styles/variables';
+@import '../../styles/mixins';
+
+.header {
+  display: flex;
+  height: 72px;
+  padding: 12px 64px;
+  flex-direction: row; // Changed from column to row to maintain the original layout
+  justify-content: space-between; // Maintains the space between left and right elements
+  align-items: center;
+  gap: 10px;
+  align-self: stretch;
+  width: 100%;
+  border: 1px solid #E9EAEC;
+  background: #FFF;
+
+  @media (max-width: 768px) {
+    padding: 12px 16px; // Reduced padding for smaller screens
+    height: auto; // Allow height to adjust
+    flex-wrap: wrap; // Allow items to wrap
+    justify-content: flex-start; // Align items to start
+    gap: 10px; // Adjust gap
+  }
+}
+
+// Hamburger menu button for mobile
+.hamburgerButton {
+  display: none; // Hidden by default on desktop
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  width: 24px; // Size of the icon
+  height: 24px;
+  color: #333; // Icon color
+  margin-right: 10px; // Space between hamburger and logo
+
+  svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  &:hover {
+    opacity: 0.8;
+  }
+
+  @media (max-width: 768px) {
+    display: block; // Show on mobile
+  }
+}
+
+.orgInfo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.orgLogo {
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  background-color: #111827;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.orgDetails {
+  display: flex;
+  flex-direction: column;
+}
+
+.orgLabel {
+  font-size: 12px;
+  color: #6b7280;
+  margin-bottom: 2px;
+}
+
+.orgName {
+  font-size: 14px;
+  font-weight: 500;
+  color: #111827;
+  margin: 0;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+
+  @media (max-width: 768px) {
+    flex-grow: 1; // Allow actions to take available space
+    justify-content: flex-end; // Push items to the right
+  }
+
+  @media (max-width: 480px) {
+    width: 100%; // Take full width on very small screens
+    justify-content: space-between; // Distribute search and button
+    margin-top: 10px; // Add some top margin
+  }
+}
+
+.searchContainer {
+  position: relative;
+  width: 240px;
+
+  @media (max-width: 768px) {
+    width: 180px; // Smaller search input on mobile
+  }
+
+  @media (max-width: 480px) {
+    width: 100%; // Full width on very small screens
+    max-width: 180px; // Max width to prevent it from being too large
+  }
+}
+
+.searchInput {
+  width: 100%;
+  padding: 8px 12px;
+  padding-right: 36px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 14px;
+  background-color: #f9fafb;
+  color: #111827;
+
+  &::placeholder {
+    color: #9ca3af;
+  }
+
+  &:focus {
+    outline: none;
+    border-color: #a78bfa;
+    box-shadow: 0 0 0 2px rgba(167, 139, 250, 0.2);
+  }
+
+  @media (max-width: 480px) {
+    font-size: 13px; // Smaller font
+    padding: 6px 10px; // Smaller padding
+    padding-right: 30px; // Adjust for smaller icon
+  }
+}
+
+.searchButton {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  padding: 0;
+  color: #9ca3af;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+
+  @media (max-width: 480px) {
+    right: 8px; // Adjust position
+    svg {
+      width: 16px; // Smaller icon
+      height: 16px;
+    }
+  }
+}
+
+.createEventButton {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background-color: #8b5cf6;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: #7c3aed;
+  }
+
+  .plusIcon {
+    font-weight: 600;
+  }
+
+  @media (max-width: 768px) {
+    padding: 6px 12px; // Smaller padding on mobile
+    font-size: 13px; // Smaller font
+  }
+}

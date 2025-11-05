@@ -1,0 +1,558 @@
+@import '../../styles/variables';
+@import '../../styles/mixins';
+
+/* ------------------------------
+   Top-level layout
+   ------------------------------ */
+.pageWrapper {
+  display: flex;
+  background-color: #F7F7FA;
+  min-height: 100vh;
+  align-items: flex-start;
+  gap: 32px; /* Gap between filter card and main content */
+
+  @media (max-width: 1024px) {
+    flex-direction: column;
+    position: relative;
+    gap: 0;
+  }
+}
+
+/* ------------------------------
+   Left sidebar (outer area)
+   ------------------------------ */
+.sidebar {
+  width: 84px;
+  flex-shrink: 0;
+  background: linear-gradient(180deg, #2e2540 0%, #22172c 100%);
+  min-height: 100vh;
+  padding: 20px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+}
+
+/* Inner card that contains Manage Event items */
+.sidebarInnerCard {
+  width: 280px;
+  flex-shrink: 0;
+  background-color: #FFFFFF;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 6px 18px rgba(17, 24, 39, 0.04);
+  border: 1px solid rgba(229, 231, 235, 0.9);
+  margin-top: 40px;
+  margin-left: 24px;
+}
+
+/* Title inside the card */
+.sidebarTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 16px 0;
+  display: block;
+}
+
+/* Filters list (card) */
+.filterNav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Each filter row */
+.filterItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 4px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #6B7280;
+  background-color: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.16s ease;
+  text-align: left;
+  width: 100%;
+}
+
+.filterItem:hover {
+  background-color: #F3F0FF;
+  color: #6D28D9;
+}
+
+.filterItem.activeFilter {
+  font-weight: 600;
+  color: #111827;
+}
+
+.filterItem span {
+  color: #6B7280;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.filterItem.activeFilter span {
+  color: #111827;
+  font-weight: 600;
+}
+
+/* ------------------------------
+   Main content area
+   ------------------------------ */
+.mainContent {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 40px 48px 40px 0;
+  gap: 24px;
+  min-width: 0; /* Prevents flex overflow */
+}
+
+@media (max-width: 1024px) {
+  .mainContent {
+    padding: 20px;
+  }
+}
+
+/* Header row containing title, search and create button */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  justify-content: space-between;
+}
+
+/* left side (title + page label) */
+.pageTitle h1 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+  color: #111827;
+}
+
+/* Right header area (search + button) */
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+/* Search input */
+.searchContainer {
+  position: relative;
+  width: 320px;
+}
+
+.searchInput {
+  height: 44px;
+  width: 100%;
+  padding: 10px 44px 10px 16px;
+  border-radius: 10px;
+  border: 1px solid #E6E7EB;
+  background-color: #FFFFFF;
+  font-size: 14px;
+  color: #111827;
+  box-shadow: none;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: rgba(139, 92, 246, 0.9);
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+}
+
+.searchIcon {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #9CA3AF;
+}
+
+/* Create event button */
+.createEventButton {
+  height: 44px;
+  padding: 0 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 14px;
+  color: #ffffff;
+  background-color: #6D28D9;
+  border: none;
+  cursor: pointer;
+  transition: background-color .15s ease, transform .15s ease;
+}
+
+.createEventButton:hover {
+  background-color: #5B21B6;
+  transform: translateY(-1px);
+}
+
+/* ------------------------------
+   Events Table Card
+   ------------------------------ */
+.eventsTable {
+  width: 100%;
+  background-color: transparent;
+  border: none;
+  box-shadow: none;
+  overflow: visible;
+}
+
+/* Column headings */
+.tableHeader {
+  display: grid;
+  grid-template-columns: minmax(300px, 1.5fr) 120px 140px 120px 64px;
+  gap: 16px;
+  padding: 12px 24px;
+  color: #6B7280;
+  font-size: 14px;
+  font-weight: 500;
+  text-transform: none;
+  align-items: center;
+}
+
+@media (max-width: 900px) {
+  .tableHeader { display: none; }
+}
+
+/* Each event row */
+.eventRow {
+  display: grid;
+  grid-template-columns: minmax(300px, 1.5fr) 120px 140px 120px 64px;
+  gap: 16px;
+  align-items: center;
+  padding: 16px 24px;
+  border-bottom: 1px solid #F3F4F6;
+  background: #ffffff;
+  transition: transform .18s ease, box-shadow .18s ease;
+  cursor: pointer;
+  border-radius: 12px;
+  margin-bottom: 12px;
+  border: 1px solid #EFEFF1;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
+}
+
+.eventRow:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 30px rgba(2, 6, 23, 0.06);
+}
+
+/* Mobile responsiveness */
+@media (max-width: 900px) {
+  .eventRow {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+/* Event left info block */
+.eventInfoCell {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+
+/* Date block */
+.dateBlock {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  background-color: #F9FAFB;
+  border: 1px solid #F1F2F4;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.dateMonth {
+  font-size: 10px;
+  font-weight: 700;
+  color: #EF4444;
+  text-transform: uppercase;
+}
+
+.dateDay {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.2;
+}
+
+/* Thumbnail */
+.eventThumbnail {
+  width: 72px;
+  height: 56px;
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.eventThumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Text details */
+.eventDetails {
+  min-width: 0;
+  .eventName {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: #111827;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .eventLocation {
+    margin: 4px 0 0 0;
+    font-size: 13px;
+    color: #6B7280;
+    font-weight: 500;
+  }
+}
+
+/* Status column */
+.statusCell {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.statusBadge {
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 13px;
+  display: inline-block;
+  text-align: center;
+  min-width: 60px;
+}
+
+/* Colors for badges */
+.draftBadge {
+  background: #FEF3C7; /* Lighter yellow */
+  color: #92400E;
+}
+
+.liveBadge {
+  background: #E0E7FF; /* Lighter purple/blue */
+  color: #3730A3;
+}
+
+.pastBadge {
+  background: #F3F4F6;
+  color: #4B5563;
+}
+
+/* Sold column */
+.soldCell {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  min-width: 0;
+}
+
+.soldCell > span {
+  font-weight: 600;
+  color: #374151;
+  font-size: 14px;
+}
+
+.salesProgress {
+  height: 6px;
+  background-color: #E5E7EB;
+  border-radius: 6px;
+  overflow: hidden;
+  width: 100%;
+}
+
+.progressBar {
+  height: 100%;
+  width: 0%;
+  background-color: #6D28D9;
+  border-radius: 6px;
+  transition: width 0.6s cubic-bezier(.2,.9,.3,1);
+}
+
+/* Gross column */
+.grossCell {
+  text-align: left;
+  font-weight: 600;
+  color: #111827;
+  font-size: 14px;
+}
+
+/* Actions column */
+.actionsCell {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.actionsButton {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.actionsButton:hover {
+  background-color: #F3F4F6;
+}
+
+/* Action menu */
+.actionsMenuContainer {
+  position: relative;
+}
+
+.actionsMenu {
+  position: absolute;
+  top: 44px;
+  right: 0;
+  min-width: 140px;
+  background: #ffffff;
+  border: 1px solid #F1F2F4;
+  border-radius: 8px;
+  box-shadow: 0 8px 30px rgba(2, 6, 23, 0.08);
+  padding: 8px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.actionsMenu button {
+  background: transparent;
+  border: none;
+  text-align: left;
+  padding: 8px 12px;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.actionsMenu button:hover {
+  background: #F9FAFB;
+  color: #111827;
+}
+
+.deleteAction {
+  color: #EF4444;
+}
+.deleteAction:hover {
+    color: #DC2626;
+    background-color: #FEF2F2;
+}
+
+
+/* ------------------------------
+   Delete modal & Utilities
+   ------------------------------ */
+.deleteModalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 24, 39, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 3000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.deleteModal {
+  width: 90%;
+  max-width: 420px;
+  background: #ffffff;
+  padding: 32px;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(2,6,23,0.18);
+  text-align: center;
+}
+
+.deleteModal h3 {
+  margin: 0 0 8px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.deleteModal p {
+  color: #6B7280;
+  margin-bottom: 24px;
+  line-height: 1.5;
+}
+
+.deleteModalActions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.cancelButton, .confirmDeleteButton {
+    height: 40px;
+    padding: 0 18px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.cancelButton {
+  background: #ffffff;
+  border: 1px solid #D1D5DB;
+  color: #374151;
+}
+.cancelButton:hover {
+    background-color: #F9FAFB;
+}
+
+.confirmDeleteButton {
+  background: #DC2626;
+  color: #fff;
+  border: none;
+}
+.confirmDeleteButton:hover {
+    background: #B91C1C;
+}
+
+.noEventsMessage {
+  padding: 64px;
+  color: #6B7280;
+  text-align: center;
+  background-color: #FFF;
+  border-radius: 12px;
+  border: 1px solid #EFEFF1;
+}
+
+.loadingContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 50vh;
+  width: 100%;
+}

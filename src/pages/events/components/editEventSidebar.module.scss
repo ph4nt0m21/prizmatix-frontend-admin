@@ -1,0 +1,141 @@
+@import '../../../styles/variables';
+@import '../../../styles/mixins';
+
+.sidebar {
+  display: flex;
+  width: 292px; /* Fixed width for desktop */
+  min-width: 292px; /* Ensure it doesn't shrink on desktop */
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 1px;
+  align-self: stretch;
+  border-radius: 8px;
+  background: #FFF;
+  box-shadow: 0px 2px 4px 0px rgba(0, 0, 0, 0.05);
+  margin: 20px 0 20px 20px; /* Margin for desktop positioning */
+  position: relative; /* Default to relative for desktop flow */
+  z-index: 1; /* Default z-index for desktop */
+
+  @media (max-width: 768px) {
+    position: fixed; /* Make it an overlay on mobile */
+    top: 0;
+    left: -292px; /* Hidden by default (starts off-screen) */
+    transform: translateX(0); /* Reset transform initially */
+    width: 292px; /* Fixed width for mobile overlay */
+    height: 100vh; /* Full viewport height */
+    z-index: 1001; /* Higher z-index than main SideNavBar (1000) and overlay (999) */
+    transition: transform 0.3s ease-in-out; /* Smooth slide animation */
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.5); /* Add shadow for depth */
+    padding-top: 20px; /* Adjust padding for mobile */
+    padding-bottom: 20px; /* Adjust padding for mobile */
+    justify-content: space-between; /* Distribute content vertically */
+    margin: 0; /* Remove desktop margins on mobile */
+  }
+
+  &.open {
+    @media (max-width: 768px) {
+      transform: translateX(292px); /* Slides into view by its own width */
+    }
+  }
+}
+
+.sidebarHeader {
+  padding: 0 24px 16px;
+  border-bottom: 1px solid #f0f0f0;
+  margin-bottom: 20px;
+  width: 100%;
+}
+
+.sidebarTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 4px 0;
+}
+
+.sidebarSubtitle {
+  font-size: 12px;
+  color: #6b7280;
+  margin: 0;
+}
+
+.stepsList {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 0 12px;
+  overflow-y: auto;
+  width: 100%;
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  padding: 10px 12px;
+  margin-bottom: 4px;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background-color 0.2s ease-in-out;
+  width: 100%;
+
+  &:hover {
+    background-color: #F3F4F6;
+  }
+
+  &.active {
+    background-color: #F3EBFE;
+  }
+}
+
+.stepIconContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background-color: #F3F4F6;
+  margin-right: 12px;
+  transition: background-color 0.2s ease-in-out;
+
+  svg {
+    width: 20px;
+    height: 20px;
+    color: #4B5563;
+    transition: color 0.2s ease-in-out;
+  }
+}
+
+.stepStatusIndicator {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1px solid #E9EAEC;
+  background-color: #FFF;
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &.activeIndicator {
+    background-color: #7C3AED;
+    border-color: #7C3AED;
+  }
+
+  svg {
+    width: 10px;
+    height: 10px;
+  }
+}
+
+.stepLabel {
+  font-size: 14px;
+  color: #6b7280;
+  flex: 1;
+
+  .active & {
+    color: #7C3AED;
+    font-weight: 500;
+  } 
+}
