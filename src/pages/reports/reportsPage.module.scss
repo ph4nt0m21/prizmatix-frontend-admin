@@ -1,0 +1,124 @@
+.pageWrapper {
+  padding: 28px;
+  color: #1c1c1c;
+}
+
+.pageTitle {
+  font-size: 26px;
+  font-weight: 700;
+  margin-bottom: 24px;
+}
+
+/* SUB TABS */
+.tabs {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.tab {
+  padding: 8px 16px;
+  font-weight: 600;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  color: #777;
+}
+
+.tab.active {
+  background: #fff;
+  color: #222;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+/* TABLE CARD */
+.tableCard {
+  background: #fff;
+  padding: 20px;
+  border-radius: 14px;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.05);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table thead th {
+  background: #f8f8f8;
+  padding: 12px;
+  font-weight: 600;
+  text-align: left;
+}
+
+.table tbody td {
+  padding: 14px 12px;
+  border-bottom: 1px solid #eee;
+}
+
+.linkCell {
+  color: #6c63ff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.subEmail {
+  color: #777;
+  font-size: 12px;
+}
+
+.actionCell {
+  position: relative;
+}
+
+.actionButton {
+  color: #6c63ff;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.dropdownMenu {
+  position: absolute;
+  right: 0;
+  margin-top: 6px;
+  background: #fff;
+  padding: 12px;
+  border-radius: 10px;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+  z-index: 30;
+  min-width: 180px;
+}
+
+.dropdownMenu div {
+  padding: 8px 0;
+  cursor: pointer;
+}
+
+.dropdownMenu div:hover {
+  color: #6c63ff;
+}
+
+/* Pagination */
+.pagination {
+  margin-top: 14px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.pagination span {
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
+.activePage {
+  background: #000;
+  color: #fff;
+  border-radius: 6px;
+}
+
+.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

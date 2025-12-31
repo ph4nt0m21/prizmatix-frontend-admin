@@ -229,3 +229,15 @@ export const VerifyQrCodeAPI = async (data) => {
 export const CheckoutAttendeeAPI = async (ticketId) => {
   return await apiClient.post(`/scanner/checkout/${ticketId}`);
 };
+
+// =============== ORGANIZATION APIs ===============
+
+// Get all organizations (Super Admin)
+export const GetAllOrganizationsAPI = async (data) => {
+  return await apiClient.post("/api/organizations/getAll", data);
+};
+
+// =============== USERS / ADMINS APIs ===============
+export const GetAllAdminsAPI = async (data) => {
+  return await apiClient.post("/admin/getAllAdmins", data);
+};
