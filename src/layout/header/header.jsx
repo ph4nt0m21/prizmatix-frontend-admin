@@ -57,7 +57,7 @@ const Header = ({ toggleMobileSidebar }) => {
       }
       return userData.organizationName.substring(0, 2).toUpperCase();
     }
-    return 'CF'; // Default fallback
+    return 'PA'; // Default fallback
   };
 
   return (
@@ -72,8 +72,8 @@ const Header = ({ toggleMobileSidebar }) => {
           <span>{getOrgInitials()}</span>
         </div>
         <div className={styles.orgDetails}>
-          <span className={styles.orgLabel}>Organisation</span>
-          <h2 className={styles.orgName}>{userData?.organizationName || 'City Music Festival'}</h2>
+          <span className={styles.orgLabel}></span>
+          <h2 className={styles.orgName}>{userData?.organizationName || 'Prizmatix Admin'}</h2>
         </div>
       </div>
 
