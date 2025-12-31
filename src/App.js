@@ -19,7 +19,9 @@ import NotFoundPage from "./pages/notFound/notFoundPage";
 // NEW: Import EmailCampaignsPage
 // import UnauthorizedPage from './pages/unauthorized/unauthorizedPage';
 import DashboardPage from "./pages/admin/DashboardPage";
-
+import UsersPage from "./pages/users/UsersPage";
+import RevenuePage from "./pages/revenue/RevenuePage";
+import ReportsPage from "./pages/reports/ReportsPage";
 
 // Import utilities and components
 import ProtectedRoute from "./security/protectedRoute";
@@ -80,6 +82,9 @@ const AppContent = () => {
           <Route element={<ProtectedRoute allowedRoles={['ORGANIZER', 'ADMINISTRATOR']} />}>
             <Route path="/" element={<MainLayout />}>
               <Route index element={<DashboardPage />} />
+              <Route path="users" element={<UsersPage />} />
+              <Route path="revenue" element={<RevenuePage />} />
+              <Route path="reports" element={<ReportsPage />} />
               <Route path="events" element={<EventsPage />} />
               <Route path="events/manage/:eventId/:section" element={<EventManagePage />} />
               <Route path="events/edit-page/:eventId/:step" element={<EventEditPage />} />
