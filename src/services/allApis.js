@@ -241,3 +241,36 @@ export const GetAllOrganizationsAPI = async (data) => {
 export const GetAllAdminsAPI = async (data) => {
   return await apiClient.post("/admin/getAllAdmins", data);
 };
+
+// =============== SUPER ADMIN – PAYOUT REQUESTS ===============
+// All require Bearer token; 403 = super admin access required.
+
+export const GetPayoutsAPI = async () => {
+  return await apiClient.get("/admin/payouts");
+};
+
+export const CancelPayoutAPI = async (id) => {
+  return await apiClient.post(`/admin/payouts/${id}/cancel`);
+};
+
+export const MarkPayoutPaidAPI = async (id) => {
+  return await apiClient.post(`/admin/payouts/${id}/mark-paid`);
+};
+
+export const GetPayoutOrganizerContactAPI = async (id) => {
+  return await apiClient.get(`/admin/payouts/${id}/organizer-contact`);
+};
+
+/** Returns binary PDF; use responseType 'arraybuffer' or 'blob' and trigger download. */
+export const GetPayoutBillAPI = async (id) => {
+  return await apiClient.get(`/admin/payouts/${id}/bill`, { responseType: "blob" });
+};
+
+// =============== SUPER ADMIN – REVENUE DASHBOARD ===============
+/** Get revenue dashboard: total revenue, absorber fee, top organizers, net revenue chart.
+ *  params: { range?: 'week' | 'month' | 'year' }
+ *  Response: { data: { totalRevenue, absorberFee, topOrganizers: [{ name, revenue }], netRevenueChart: [{ label, value }] } }
+ */
+export const GetRevenueDashboardAPI = async (params = {}) => {
+  return await apiClient.get("/admin/revenue-dashboard", { params });
+};

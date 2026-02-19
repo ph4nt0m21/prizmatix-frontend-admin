@@ -137,6 +137,23 @@
   border: 1px solid #ddd;
 }
 
+.chartPlaceholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 160px;
+  color: #666;
+}
+
+.dashboardError {
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  background: #fff8e6;
+  border-radius: 8px;
+  color: #8a6914;
+  font-size: 14px;
+}
+
 /* ==================================== */
 /* PAYOUT MANAGEMENT */
 /* ==================================== */
@@ -229,6 +246,62 @@
   color: #6c63ff;
   cursor: pointer;
   font-weight: 600;
+}
+
+/* Payout requests: messages */
+.forbiddenMessage {
+  color: #c0392b;
+  font-weight: 600;
+  margin: 0;
+  padding: 12px 0;
+}
+
+.errorMessage {
+  color: #c0392b;
+  margin: 0;
+  padding: 12px 0;
+}
+
+.loadingMessage {
+  color: #666;
+  margin: 0;
+  padding: 12px 0;
+}
+
+.emptyCell {
+  text-align: center;
+  color: #888;
+  padding: 24px;
+}
+
+.actionButtons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.statusBadge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.status_pending {
+  background: #fff8e6;
+  color: #b38600;
+}
+
+.status_cancelled {
+  background: #f5f5f5;
+  color: #666;
+}
+
+.status_paid {
+  background: #e8ffe3;
+  color: #1fae6b;
 }
 
 /* Download Invoice */

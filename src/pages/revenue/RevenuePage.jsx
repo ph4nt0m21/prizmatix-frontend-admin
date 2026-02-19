@@ -10,6 +10,15 @@ import {
   BarChart,
   Bar,
 } from "recharts";
+import { toast } from "react-toastify";
+import {
+  GetPayoutsAPI,
+  CancelPayoutAPI,
+  MarkPayoutPaidAPI,
+  GetPayoutOrganizerContactAPI,
+  GetPayoutBillAPI,
+  GetRevenueDashboardAPI,
+} from "../../services/allApis";
 import styles from "./revenuePage.module.scss";
 
 /**
@@ -21,51 +30,65 @@ import styles from "./revenuePage.module.scss";
  * - replace save/update/delete functions with POST/PUT/DELETE accordingly
  */
 
+// Format ISO date for display
+function formatRequestedAt(iso) {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  return d.toLocaleString(undefined, { dateStyle: "short", timeStyle: "short" });
+}
+
+// Event status from eventFinished
+function eventStatusLabel(eventFinished) {
+  if (eventFinished === true) return "Finished";
+  return "Upcoming";
+}
+
+// Amount as NZD
+function formatAmount(amount) {
+  if (amount == null) return "—";
+  return `NZD $${Number(amount).toFixed(2)}`;
+}
+
 export default function RevenuePage() {
   const [activeTab, setActiveTab] = useState("revenue-dashboard");
   const [payoutTab, setPayoutTab] = useState("requests");
 
-  // --------------------------
-  // Charts (static data) - unchanged
-  // --------------------------
-  const revenueData = [
-    { month: "Jan", value: 400 },
-    { month: "Feb", value: 250 },
-    { month: "Mar", value: 300 },
-    { month: "Apr", value: 480 },
-    { month: "May", value: 350 },
-    { month: "Jun", value: 420 },
-    { month: "Today", value: 500 },
-  ];
+  // Super admin payout requests (from API)
+  const [payouts, setPayouts] = useState([]);
+  const [payoutsLoading, setPayoutsLoading] = useState(false);
+  const [payoutsError, setPayoutsError] = useState(null);
+  const [payoutsForbidden, setPayoutsForbidden] = useState(false);
+  const [contactModal, setContactModal] = useState(null); // { email, firstName, lastName, mobileNumber, organizationName }
+  const [actionLoadingId, setActionLoadingId] = useState(null);
 
-  const topOrganisersData = [
-    { name: "Name 1", value: 500 },
-    { name: "Name 2", value: 800 },
-    { name: "Name 3", value: 120 },
-    { name: "Name 4", value: 600 },
-    { name: "Name 5", value: 320 },
-    { name: "Name 6", value: 420 },
-  ];
+  // Revenue dashboard (all organizations)
+  const [dashboardData, setDashboardData] = useState({
+    totalRevenue: null,
+    absorberFee: null,
+    topOrganizers: [],
+    netRevenueChart: [],
+  });
+  const [dashboardLoading, setDashboardLoading] = useState(false);
+  const [dashboardError, setDashboardError] = useState(null);
+  const [chartRange, setChartRange] = useState("month"); // 'week' | 'month' | 'year'
 
-  const payoutRequests = [
-    {
-      organizer: "City Music Festival",
-      event: "City Music Fest 2025",
-      status: "Unfinished",
-      timestamp: "12/01/25 at 9:18:50 AM",
-      daysRemaining: "2 Days",
-      payoutType: "Advance Payout",
-      amount: "$230",
-    },
-    {
-      organizer: "City Music Festival",
-      event: "City Music Fest 2025",
-      status: "Finished",
-      timestamp: "12/01/25 at 9:18:50 AM",
-      daysRemaining: "10 Days",
-      payoutType: "Full Payout",
-      amount: "$230",
-    },
+  // Fallback static data when API is unavailable
+  const fallbackRevenueChart = [
+    { label: "Jan", value: 400 },
+    { label: "Feb", value: 250 },
+    { label: "Mar", value: 300 },
+    { label: "Apr", value: 480 },
+    { label: "May", value: 350 },
+    { label: "Jun", value: 420 },
+    { label: "Today", value: 500 },
+  ];
+  const fallbackTopOrganizers = [
+    { name: "Name 1", revenue: 500 },
+    { name: "Name 2", revenue: 800 },
+    { name: "Name 3", revenue: 120 },
+    { name: "Name 4", revenue: 600 },
+    { name: "Name 5", revenue: 320 },
+    { name: "Name 6", revenue: 420 },
   ];
 
   const payoutHistory = [
@@ -130,6 +153,61 @@ export default function RevenuePage() {
     notes: "",
   };
   const [form, setForm] = useState(defaultForm);
+
+  // Fetch payout requests when on Revenue Dashboard (for counts) or Payout Management (super admin API)
+  useEffect(() => {
+    if (activeTab !== "revenue-dashboard" && (activeTab !== "payout-management" || payoutTab !== "requests"))
+      return;
+    setPayoutsLoading(true);
+    setPayoutsError(null);
+    setPayoutsForbidden(false);
+    GetPayoutsAPI()
+      .then((res) => {
+        const list = res?.data?.data ?? [];
+        setPayouts(Array.isArray(list) ? list : []);
+      })
+      .catch((err) => {
+        const status = err?.response?.status;
+        const message = err?.response?.data?.message;
+        if (status === 403) {
+          setPayoutsForbidden(true);
+          setPayouts([]);
+        } else {
+          setPayoutsError(message || "Failed to load payout requests.");
+          setPayouts([]);
+        }
+      })
+      .finally(() => setPayoutsLoading(false));
+  }, [activeTab, payoutTab]);
+
+  // Fetch revenue dashboard when on Revenue Dashboard tab
+  useEffect(() => {
+    if (activeTab !== "revenue-dashboard") return;
+    setDashboardLoading(true);
+    setDashboardError(null);
+    GetRevenueDashboardAPI({ range: chartRange })
+      .then((res) => {
+        const d = res?.data?.data ?? res?.data;
+        if (d) {
+          setDashboardData({
+            totalRevenue: d.totalRevenue ?? null,
+            absorberFee: d.absorberFee ?? null,
+            topOrganizers: Array.isArray(d.topOrganizers) ? d.topOrganizers : [],
+            netRevenueChart: Array.isArray(d.netRevenueChart) ? d.netRevenueChart : [],
+          });
+        }
+      })
+      .catch(() => {
+        setDashboardError("Could not load dashboard");
+        setDashboardData({
+          totalRevenue: 2700,
+          absorberFee: 200,
+          topOrganizers: fallbackTopOrganizers,
+          netRevenueChart: fallbackRevenueChart,
+        });
+      })
+      .finally(() => setDashboardLoading(false));
+  }, [activeTab, chartRange]);
 
   // Utility: load mocked fee configs from localStorage or seed example
   useEffect(() => {
@@ -321,6 +399,69 @@ export default function RevenuePage() {
     setDeleteCandidate(null);
   }
 
+  // ---------- Payout actions (super admin) ----------
+  function handleCancelPayout(id) {
+    setActionLoadingId(id);
+    CancelPayoutAPI(id)
+      .then(() => {
+        setPayouts((prev) => prev.map((p) => (p.id === id ? { ...p, status: "CANCELLED" } : p)));
+        toast.success("Payout request cancelled.");
+      })
+      .catch((err) => {
+        const msg = err?.response?.data?.message || "Failed to cancel.";
+        toast.error(msg);
+      })
+      .finally(() => setActionLoadingId(null));
+  }
+
+  function handleMarkPaid(id) {
+    setActionLoadingId(id);
+    MarkPayoutPaidAPI(id)
+      .then(() => {
+        setPayouts((prev) => prev.map((p) => (p.id === id ? { ...p, status: "PAID" } : p)));
+        toast.success("Marked as paid.");
+      })
+      .catch((err) => {
+        const msg = err?.response?.data?.message || "Failed to mark as paid.";
+        toast.error(msg);
+      })
+      .finally(() => setActionLoadingId(null));
+  }
+
+  function handleDownloadBill(id) {
+    setActionLoadingId(id);
+    GetPayoutBillAPI(id)
+      .then((res) => {
+        const blob = res.data;
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `payout-bill-${id}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        a.remove();
+        toast.success("Bill downloaded.");
+      })
+      .catch(() => {
+        toast.error("Failed to download bill.");
+      })
+      .finally(() => setActionLoadingId(null));
+  }
+
+  function handleContactOrganizer(id) {
+    GetPayoutOrganizerContactAPI(id)
+      .then((res) => {
+        const d = res?.data?.data;
+        if (d) setContactModal({ email: d.email, firstName: d.firstName, lastName: d.lastName, mobileNumber: d.mobileNumber, organizationName: d.organizationName });
+        else toast.error("Contact details not found.");
+      })
+      .catch((err) => {
+        const msg = err?.response?.data?.message || "Failed to load contact.";
+        toast.error(msg);
+      });
+  }
+
   // ---------- Derived values ----------
   const orgsWithConfigMap = useMemo(() => {
     const map = {};
@@ -374,19 +515,33 @@ export default function RevenuePage() {
         </button>
       </div>
 
-      {/* (unchanged) Revenue Dashboard */}
+      {/* Revenue Dashboard */}
       {activeTab === "revenue-dashboard" && (
         <>
-          {/* ... (kept identical to the original markup above) */}
           <div className={styles.cardRow}>
             <div className={styles.bigCard}>
-              <div className={styles.cardAmount}>$ 01 M</div>
-              <div className={styles.cardLabel}>Total Revenue</div>
+              <div className={styles.cardAmount}>
+                {dashboardLoading ? "—" : formatAmount(dashboardData.totalRevenue)}
+              </div>
+              <div className={styles.cardLabel}>Total Revenue (all organizations)</div>
             </div>
 
             <div className={styles.bigCard}>
-              <div className={styles.cardAmount}>$ 0.2 M</div>
-              <div className={styles.cardLabel}>Net Profit</div>
+              <div className={styles.cardAmount}>
+                {dashboardLoading ? "—" : formatAmount(dashboardData.absorberFee)}
+              </div>
+              <div className={styles.cardLabel}>Absorber Fee (all organizations)</div>
+            </div>
+
+            <div className={styles.bigCard}>
+              <div className={styles.cardAmount}>
+                {dashboardLoading
+                  ? "—"
+                  : formatAmount(
+                      (Number(dashboardData.totalRevenue) || 0) - (Number(dashboardData.absorberFee) || 0)
+                    )}
+              </div>
+              <div className={styles.cardLabel}>Net Revenue</div>
             </div>
           </div>
 
@@ -395,15 +550,25 @@ export default function RevenuePage() {
               <div className={styles.panelTitle}>Top Performing Organisers</div>
 
               <div className={styles.smallCard}>
-                <ResponsiveContainer width="100%" height={160}>
-                  <BarChart data={topOrganisersData}>
-                    <CartesianGrid stroke="#f0f0f0" />
-                    <XAxis dataKey="name" hide />
-                    <YAxis />
-                    <Tooltip />
-                    <Bar dataKey="value" fill="#6C63FF" />
-                  </BarChart>
-                </ResponsiveContainer>
+                {dashboardLoading ? (
+                  <div className={styles.chartPlaceholder}>Loading…</div>
+                ) : (
+                  <ResponsiveContainer width="100%" height={160}>
+                    <BarChart
+                      data={
+                        dashboardData.topOrganizers.length > 0
+                          ? dashboardData.topOrganizers
+                          : fallbackTopOrganizers
+                      }
+                    >
+                      <CartesianGrid stroke="#f0f0f0" />
+                      <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                      <YAxis />
+                      <Tooltip formatter={(v) => formatAmount(v)} />
+                      <Bar dataKey="revenue" fill="#6C63FF" name="Revenue" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
               </div>
             </div>
 
@@ -412,22 +577,48 @@ export default function RevenuePage() {
                 <div className={styles.payoutRow}>
                   <div>
                     <div className={styles.payoutTitle}>Pending Requests</div>
-                    <div className={styles.payoutMeta}>02</div>
+                    <div className={styles.payoutMeta}>
+                      {payouts.filter((p) => p.status === "PENDING").length}
+                    </div>
                   </div>
-                  <div className={styles.payoutAction}>View</div>
+                  <div
+                    className={styles.payoutAction}
+                    onClick={() => setActiveTab("payout-management")}
+                    onKeyDown={(e) => e.key === "Enter" && setActiveTab("payout-management")}
+                    role="button"
+                    tabIndex={0}
+                  >
+                    View
+                  </div>
                 </div>
 
                 <div className={styles.payoutRow} style={{ marginTop: 12 }}>
                   <div>
                     <div className={styles.payoutTitle}>Completed Requests</div>
-                    <div className={styles.payoutMetaGreen}>02</div>
+                    <div className={styles.payoutMetaGreen}>
+                      {payouts.filter((p) => p.status === "PAID").length}
+                    </div>
                   </div>
-                  <div className={styles.payoutAction}>View</div>
+                  <div
+                    className={styles.payoutAction}
+                    onClick={() => setActiveTab("payout-management")}
+                    onKeyDown={(e) => e.key === "Enter" && setActiveTab("payout-management")}
+                    role="button"
+                    tabIndex={0}
+                  >
+                    View
+                  </div>
                 </div>
 
                 <div className={styles.sparklineWrapper}>
                   <ResponsiveContainer width="100%" height={80}>
-                    <LineChart data={revenueData}>
+                    <LineChart
+                      data={
+                        dashboardData.netRevenueChart.length > 0
+                          ? dashboardData.netRevenueChart
+                          : fallbackRevenueChart
+                      }
+                    >
                       <Line type="monotone" dataKey="value" stroke="#6C63FF" strokeWidth={2} dot={false} />
                     </LineChart>
                   </ResponsiveContainer>
@@ -441,21 +632,35 @@ export default function RevenuePage() {
               <div className={styles.largeChartTitle}>Net Revenue</div>
 
               <div>
-                <select className={styles.rangeSelect}>
-                  <option>Week</option>
-                  <option>Month</option>
-                  <option>Year</option>
+                <select
+                  className={styles.rangeSelect}
+                  value={chartRange}
+                  onChange={(e) => setChartRange(e.target.value)}
+                >
+                  <option value="week">Week</option>
+                  <option value="month">Month</option>
+                  <option value="year">Year</option>
                 </select>
               </div>
             </div>
 
+            {dashboardError && (
+              <div className={styles.dashboardError}>{dashboardError} — showing sample data.</div>
+            )}
+
             <div style={{ width: "100%", height: 300 }}>
               <ResponsiveContainer>
-                <LineChart data={revenueData}>
+                <LineChart
+                  data={
+                    dashboardData.netRevenueChart.length > 0
+                      ? dashboardData.netRevenueChart
+                      : fallbackRevenueChart
+                  }
+                >
                   <CartesianGrid stroke="#f0f0f0" />
-                  <XAxis dataKey="month" />
-                  <YAxis />
-                  <Tooltip />
+                  <XAxis dataKey="label" />
+                  <YAxis tickFormatter={(v) => `$${v}`} />
+                  <Tooltip formatter={(v) => [formatAmount(v), "Net revenue"]} />
                   <Line
                     type="monotone"
                     dataKey="value"
@@ -514,41 +719,103 @@ export default function RevenuePage() {
           </div>
 
           {payoutTab === "requests" && (
-            <div className={styles.tableCard}>
-              <table className={styles.table}>
-                <thead>
-                  <tr>
-                    <th>Organizer</th>
-                    <th>Event</th>
-                    <th>Event Status</th>
-                    <th>Request Timestamp</th>
-                    <th>Temp</th>
-                    <th>Payout Type</th>
-                    <th>Amount</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {payoutRequests.map((row, i) => (
-                    <tr key={i}>
-                      <td>{row.organizer}</td>
-                      <td>{row.event}</td>
-                      <td>{row.status}</td>
-                      <td>{row.timestamp}</td>
-                      <td>
-                        <div className={styles.tempBadge}>{row.daysRemaining}</div>
-                      </td>
-                      <td>{row.payoutType}</td>
-                      <td>{row.amount}</td>
-                      <td>
-                        <div className={styles.actionDropdown}>Action</div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <>
+              {payoutsForbidden && (
+                <div className={styles.tableCard}>
+                  <p className={styles.forbiddenMessage}>Super admin access required. You do not have permission to view or manage payout requests.</p>
+                </div>
+              )}
+              {!payoutsForbidden && payoutsError && (
+                <div className={styles.tableCard}>
+                  <p className={styles.errorMessage}>{payoutsError}</p>
+                </div>
+              )}
+              {!payoutsForbidden && !payoutsError && payoutsLoading && (
+                <div className={styles.tableCard}>
+                  <p className={styles.loadingMessage}>Loading payout requests…</p>
+                </div>
+              )}
+              {!payoutsForbidden && !payoutsError && !payoutsLoading && (
+                <div className={styles.tableCard}>
+                  <table className={styles.table}>
+                    <thead>
+                      <tr>
+                        <th>Organizer</th>
+                        <th>Event</th>
+                        <th>Event status</th>
+                        <th>Requested at</th>
+                        <th>Payout type</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {payouts.length === 0 ? (
+                        <tr>
+                          <td colSpan={8} className={styles.emptyCell}>No payout requests.</td>
+                        </tr>
+                      ) : (
+                        payouts.map((row) => (
+                          <tr key={row.id}>
+                            <td>{row.organizerName ?? "—"}</td>
+                            <td>{row.eventName ?? "—"}</td>
+                            <td>{eventStatusLabel(row.eventFinished)}</td>
+                            <td>{formatRequestedAt(row.requestedAt)}</td>
+                            <td>{row.payoutType ?? "—"}</td>
+                            <td>{formatAmount(row.amount)}</td>
+                            <td>
+                              <span className={styles[`status_${row.status?.toLowerCase()}`] ?? styles.statusBadge}>
+                                {row.status ?? "—"}
+                              </span>
+                            </td>
+                            <td>
+                              <div className={styles.actionButtons}>
+                                {row.status === "PENDING" && (
+                                  <>
+                                    <button
+                                      type="button"
+                                      className={styles.linkButton}
+                                      disabled={actionLoadingId === row.id}
+                                      onClick={() => handleCancelPayout(row.id)}
+                                    >
+                                      Cancel
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className={styles.linkButton}
+                                      disabled={actionLoadingId === row.id}
+                                      onClick={() => handleMarkPaid(row.id)}
+                                    >
+                                      Mark as paid
+                                    </button>
+                                  </>
+                                )}
+                                <button
+                                  type="button"
+                                  className={styles.linkButton}
+                                  disabled={actionLoadingId === row.id}
+                                  onClick={() => handleDownloadBill(row.id)}
+                                >
+                                  Download bill
+                                </button>
+                                <button
+                                  type="button"
+                                  className={styles.linkButton}
+                                  onClick={() => handleContactOrganizer(row.id)}
+                                >
+                                  Contact organizer
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </>
           )}
 
           {payoutTab === "history" && (
@@ -902,6 +1169,33 @@ export default function RevenuePage() {
               >
                 Delete
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Contact organizer modal */}
+      {contactModal && (
+        <div className={styles.modalBackdrop} onClick={() => setContactModal(null)}>
+          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <h3>Contact organizer</h3>
+              <button className={styles.modalClose} onClick={() => setContactModal(null)}>
+                ✕
+              </button>
+            </div>
+            <div className={styles.modalBody}>
+              <p><strong>Name:</strong> {[contactModal.firstName, contactModal.lastName].filter(Boolean).join(" ") || "—"}</p>
+              <p><strong>Organization:</strong> {contactModal.organizationName || "—"}</p>
+              <p><strong>Email:</strong> {contactModal.email || "—"}</p>
+              <p><strong>Phone:</strong> {contactModal.mobileNumber || "—"}</p>
+              {contactModal.email && (
+                <div className={styles.modalFooter} style={{ borderTop: "none", paddingTop: 12 }}>
+                  <a href={`mailto:${contactModal.email}`} className={styles.primaryButton} style={{ textDecoration: "none" }}>
+                    Send email
+                  </a>
+                </div>
+              )}
             </div>
           </div>
         </div>

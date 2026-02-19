@@ -41,11 +41,12 @@ apiClient.interceptors.response.use(
     return response;
   },
   (error) => {
-    if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+    // Only redirect on 401 (invalid/expired token). 403 is left to callers so they can show
+    // context-specific messages (e.g. "Super admin access required" on payout endpoints).
+    if (error.response && error.response.status === 401) {
       Cookies.remove("token");
-      // Also clear user data
-      localStorage.removeItem('userData');
-      window.location.href = "/login"; 
+      localStorage.removeItem("userData");
+      window.location.href = "/login";
     }
     return Promise.reject(error);
   }
