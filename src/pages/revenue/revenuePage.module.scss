@@ -106,6 +106,15 @@
   font-weight: 600;
 }
 
+.tooltipBox {
+  padding: 8px 12px;
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  font-size: 13px;
+}
+
 /* SPARKLINE */
 .sparklineWrapper {
   margin-top: 16px;
@@ -162,6 +171,12 @@
   font-size: 20px;
   font-weight: 700;
   margin-bottom: 18px;
+}
+
+.feeDefaultHint {
+  margin: -8px 0 12px;
+  color: #666;
+  font-size: 14px;
 }
 
 /* summary cards */
@@ -262,6 +277,12 @@
   padding: 12px 0;
 }
 
+.payoutFilterNote {
+  margin: 0 0 12px;
+  font-size: 14px;
+  color: #555;
+}
+
 .loadingMessage {
   color: #666;
   margin: 0;
@@ -272,6 +293,14 @@
   text-align: center;
   color: #888;
   padding: 24px;
+}
+
+.historyJson {
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0;
+  font-size: 12px;
+  max-width: 200px;
 }
 
 .actionButtons {

@@ -267,10 +267,44 @@ export const GetPayoutBillAPI = async (id) => {
 };
 
 // =============== SUPER ADMIN – REVENUE DASHBOARD ===============
-/** Get revenue dashboard: total revenue, absorber fee, top organizers, net revenue chart.
- *  params: { range?: 'week' | 'month' | 'year' }
- *  Response: { data: { totalRevenue, absorberFee, topOrganizers: [{ name, revenue }], netRevenueChart: [{ label, value }] } }
+/** Get revenue dashboard (super admin only). 403 = super admin required.
+ *  params: { from?: string (YYYY-MM-DD), to?: string (YYYY-MM-DD), granularity?: 'WEEKLY' | 'MONTHLY' | 'YEARLY' }
+ *  Only netRevenueTrend is filtered by from/to/granularity; other metrics are platform-wide.
+ *  Response: { data: { totalRevenue, netProfit, topPerformingOrganisers, netRevenueTrend, payoutSummary: { pendingCount, completedCount } } }
  */
 export const GetRevenueDashboardAPI = async (params = {}) => {
   return await apiClient.get("/admin/revenue-dashboard", { params });
+};
+
+// =============== SUPER ADMIN – FEE CONFIGURATION ===============
+// All require Bearer token; 403 = super admin access required.
+
+/** Get default platform fee. Response: { data: { percent, fixed, display } } */
+export const GetFeeConfigDefaultAPI = async () => {
+  return await apiClient.get("/admin/fee-config/default");
+};
+
+/** List fee configuration (one row per org). Response: { data: [{ organizationId, organizationName, mode, feeDisplay, percent, fixed, notes, lastUpdated, hasOverride, feeMode }] } */
+export const GetFeeConfigListAPI = async () => {
+  return await apiClient.get("/admin/fee-config");
+};
+
+/** List organizations for Add/Edit dropdown. Response: { data: [{ id, name }] } */
+export const GetFeeConfigOrganizationsAPI = async () => {
+  return await apiClient.get("/admin/fee-config/organizations");
+};
+
+/** Create or update organization fee. Body: { organizationId, mode?, percent, fixed, notes }. mode optional, only OVERRIDE supported. */
+export const SaveFeeConfigAPI = async (body) => {
+  return await apiClient.post("/admin/fee-config", body);
+};
+
+/** Delete organization fee override. */
+export const DeleteFeeConfigAPI = async (organizationId) => {
+  return await apiClient.delete(`/admin/fee-config/${organizationId}`);
+};
+
+/** Get fee history for an organization. Response: { data: [{ timestamp, admin, action, oldValue, newValue }] } */
+export const GetFeeConfigHistoryAPI = async (organizationId) => {
+  return await apiClient.get("/admin/fee-config/history", { params: { organizationId } });
 };
