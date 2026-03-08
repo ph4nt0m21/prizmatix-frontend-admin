@@ -310,6 +310,82 @@
   align-items: center;
 }
 
+/* Three-dot actions menu (payout table) */
+.actionsCell {
+  position: relative;
+}
+
+.kebabButton {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #555;
+}
+
+.kebabButton:hover {
+  background: #f0f0f0;
+  color: #333;
+}
+
+.kebabDot {
+  display: block;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.actionsBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+}
+
+.actionsDropdown {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  margin-top: 4px;
+  min-width: 160px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  border: 1px solid #eee;
+  z-index: 20;
+  padding: 6px 0;
+}
+
+.actionsDropdownItem {
+  display: block;
+  width: 100%;
+  padding: 10px 14px;
+  text-align: left;
+  border: none;
+  background: transparent;
+  color: #333;
+  font-size: 14px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.actionsDropdownItem:hover:not(:disabled) {
+  background: #f5f5f5;
+}
+
+.actionsDropdownItem:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .statusBadge {
   display: inline-block;
   padding: 4px 10px;
@@ -432,6 +508,106 @@
   padding: 16px 18px;
   max-height: 60vh;
   overflow: auto;
+}
+
+/* Contact organizer: details + send email form */
+.contactDetails {
+  margin-bottom: 20px;
+}
+
+.contactDetails p {
+  margin: 0 0 8px;
+  font-size: 14px;
+}
+
+.sendEmailForm {
+  border-top: 1px solid #f0f0f0;
+  padding-top: 16px;
+}
+
+.emailFormLabel {
+  display: block;
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 6px;
+  margin-top: 12px;
+}
+
+.sendEmailForm .emailFormLabel:first-of-type {
+  margin-top: 0;
+}
+
+.emailTextarea {
+  width: 100%;
+  border-radius: 8px;
+  border: 1px solid #e6e6e6;
+  padding: 10px 12px;
+  font-size: 14px;
+  resize: vertical;
+  min-height: 100px;
+  font-family: inherit;
+}
+
+.uploadZone {
+  position: relative;
+  border: 2px dashed #ddd;
+  border-radius: 8px;
+  padding: 24px;
+  text-align: center;
+  background: #fafafa;
+}
+
+.uploadInput {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.uploadLabel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  color: #666;
+  font-size: 14px;
+}
+
+.uploadIcon {
+  font-size: 24px;
+  color: #999;
+}
+
+.uploadedFiles {
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+  color: #555;
+}
+
+.uploadedFiles li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.removeFileBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  color: #999;
+  padding: 0 4px;
+}
+
+.removeFileBtn:hover {
+  color: #c0392b;
 }
 
 .modalFooter {
