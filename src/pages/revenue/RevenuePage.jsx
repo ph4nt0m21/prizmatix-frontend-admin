@@ -73,6 +73,11 @@ export default function RevenuePage() {
   const [payoutsForbidden, setPayoutsForbidden] = useState(false);
   const [contactModal, setContactModal] = useState(null); // { email, firstName, lastName, mobileNumber, organizationName }
   const [actionLoadingId, setActionLoadingId] = useState(null);
+  const [openActionsRowId, setOpenActionsRowId] = useState(null); // which row's three-dot menu is open
+  // Contact modal email form (subject, message, attachments)
+  const [emailSubject, setEmailSubject] = useState("");
+  const [emailMessage, setEmailMessage] = useState("");
+  const [emailFiles, setEmailFiles] = useState([]);
 
   // Revenue dashboard (all organizations); 403 = super admin required
   const [dashboardData, setDashboardData] = useState({
@@ -396,16 +401,41 @@ export default function RevenuePage() {
   }
 
   function handleContactOrganizer(id) {
+    setOpenActionsRowId(null);
     GetPayoutOrganizerContactAPI(id)
       .then((res) => {
         const d = res?.data?.data;
-        if (d) setContactModal({ email: d.email, firstName: d.firstName, lastName: d.lastName, mobileNumber: d.mobileNumber, organizationName: d.organizationName });
-        else toast.error("Contact details not found.");
+        if (d) {
+          setContactModal({ email: d.email, firstName: d.firstName, lastName: d.lastName, mobileNumber: d.mobileNumber, organizationName: d.organizationName });
+          setEmailSubject("");
+          setEmailMessage("");
+          setEmailFiles([]);
+        } else toast.error("Contact details not found.");
       })
       .catch((err) => {
         const msg = err?.response?.data?.message || "Failed to load contact.";
         toast.error(msg);
       });
+  }
+
+  function handleSendEmail() {
+    if (!contactModal?.email) return;
+    const subject = encodeURIComponent(emailSubject || "");
+    const body = encodeURIComponent(emailMessage || "");
+    const mailto = `mailto:${contactModal.email}?subject=${subject}&body=${body}`;
+    window.location.href = mailto;
+    toast.success("Opening your email client.");
+  }
+
+  function handleEmailFilesChange(e) {
+    const files = e.target.files ? Array.from(e.target.files) : [];
+    const allowed = ["image/jpeg", "image/png", "application/pdf"];
+    const valid = files.filter((f) => allowed.includes(f.type));
+    setEmailFiles((prev) => [...prev, ...valid]);
+  }
+
+  function removeEmailFile(index) {
+    setEmailFiles((prev) => prev.filter((_, i) => i !== index));
   }
 
 
@@ -683,42 +713,60 @@ export default function RevenuePage() {
                               </span>
                             </td>
                             <td>
-                              <div className={styles.actionButtons}>
-                                {row.status === "PENDING" && (
+                              <div className={styles.actionsCell}>
+                                <button
+                                  type="button"
+                                  className={styles.kebabButton}
+                                  onClick={() => setOpenActionsRowId((prev) => (prev === row.id ? null : row.id))}
+                                  aria-label="Actions"
+                                  aria-expanded={openActionsRowId === row.id}
+                                >
+                                  <span className={styles.kebabDot} />
+                                  <span className={styles.kebabDot} />
+                                  <span className={styles.kebabDot} />
+                                </button>
+                                {openActionsRowId === row.id && (
                                   <>
-                                    <button
-                                      type="button"
-                                      className={styles.linkButton}
-                                      disabled={actionLoadingId === row.id}
-                                      onClick={() => handleCancelPayout(row.id)}
-                                    >
-                                      Cancel
-                                    </button>
-                                    <button
-                                      type="button"
-                                      className={styles.linkButton}
-                                      disabled={actionLoadingId === row.id}
-                                      onClick={() => handleMarkPaid(row.id)}
-                                    >
-                                      Mark as paid
-                                    </button>
+                                    <div className={styles.actionsBackdrop} onClick={() => setOpenActionsRowId(null)} aria-hidden="true" />
+                                    <div className={styles.actionsDropdown}>
+                                      {row.status === "PENDING" && (
+                                        <>
+                                          <button
+                                            type="button"
+                                            className={styles.actionsDropdownItem}
+                                            disabled={actionLoadingId === row.id}
+                                            onClick={() => { handleCancelPayout(row.id); setOpenActionsRowId(null); }}
+                                          >
+                                            Cancel
+                                          </button>
+                                          <button
+                                            type="button"
+                                            className={styles.actionsDropdownItem}
+                                            disabled={actionLoadingId === row.id}
+                                            onClick={() => { handleMarkPaid(row.id); setOpenActionsRowId(null); }}
+                                          >
+                                            Mark as paid
+                                          </button>
+                                        </>
+                                      )}
+                                      <button
+                                        type="button"
+                                        className={styles.actionsDropdownItem}
+                                        disabled={actionLoadingId === row.id}
+                                        onClick={() => { handleDownloadBill(row.id); setOpenActionsRowId(null); }}
+                                      >
+                                        Download bill
+                                      </button>
+                                      <button
+                                        type="button"
+                                        className={styles.actionsDropdownItem}
+                                        onClick={() => handleContactOrganizer(row.id)}
+                                      >
+                                        Contact organizer
+                                      </button>
+                                    </div>
                                   </>
                                 )}
-                                <button
-                                  type="button"
-                                  className={styles.linkButton}
-                                  disabled={actionLoadingId === row.id}
-                                  onClick={() => handleDownloadBill(row.id)}
-                                >
-                                  Download bill
-                                </button>
-                                <button
-                                  type="button"
-                                  className={styles.linkButton}
-                                  onClick={() => handleContactOrganizer(row.id)}
-                                >
-                                  Contact organizer
-                                </button>
                               </div>
                             </td>
                           </tr>
@@ -1054,15 +1102,60 @@ export default function RevenuePage() {
               </button>
             </div>
             <div className={styles.modalBody}>
-              <p><strong>Name:</strong> {[contactModal.firstName, contactModal.lastName].filter(Boolean).join(" ") || "—"}</p>
-              <p><strong>Organization:</strong> {contactModal.organizationName || "—"}</p>
-              <p><strong>Email:</strong> {contactModal.email || "—"}</p>
-              <p><strong>Phone:</strong> {contactModal.mobileNumber || "—"}</p>
+              <div className={styles.contactDetails}>
+                <p><strong>Name:</strong> {[contactModal.firstName, contactModal.lastName].filter(Boolean).join(" ") || "—"}</p>
+                <p><strong>Organization:</strong> {contactModal.organizationName || "—"}</p>
+                <p><strong>Email:</strong> {contactModal.email || "—"}</p>
+                <p><strong>Phone:</strong> {contactModal.mobileNumber || "—"}</p>
+              </div>
               {contactModal.email && (
-                <div className={styles.modalFooter} style={{ borderTop: "none", paddingTop: 12 }}>
-                  <a href={`mailto:${contactModal.email}`} className={styles.primaryButton} style={{ textDecoration: "none" }}>
-                    Send email
-                  </a>
+                <div className={styles.sendEmailForm}>
+                  <label className={styles.emailFormLabel}>Subject</label>
+                  <input
+                    type="text"
+                    className={styles.inputFull}
+                    placeholder="e.g. Early Bird Ticket Issue"
+                    value={emailSubject}
+                    onChange={(e) => setEmailSubject(e.target.value)}
+                  />
+                  <label className={styles.emailFormLabel}>Message</label>
+                  <textarea
+                    className={styles.emailTextarea}
+                    placeholder="e.g. The great Music Festival 2025"
+                    value={emailMessage}
+                    onChange={(e) => setEmailMessage(e.target.value)}
+                    rows={4}
+                  />
+                  <label className={styles.emailFormLabel}>Attachments</label>
+                  <div className={styles.uploadZone}>
+                    <input
+                      type="file"
+                      id="contact-email-attachments"
+                      accept=".jpg,.jpeg,.png,.pdf"
+                      multiple
+                      className={styles.uploadInput}
+                      onChange={handleEmailFilesChange}
+                    />
+                    <label htmlFor="contact-email-attachments" className={styles.uploadLabel}>
+                      <span className={styles.uploadIcon}>↑</span>
+                      <span>Upload anything related to your concern (.jpg, .pdf, .png)</span>
+                    </label>
+                  </div>
+                  {emailFiles.length > 0 && (
+                    <ul className={styles.uploadedFiles}>
+                      {emailFiles.map((f, i) => (
+                        <li key={i}>
+                          {f.name}
+                          <button type="button" className={styles.removeFileBtn} onClick={() => removeEmailFile(i)} aria-label="Remove file">×</button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  <div className={styles.modalFooter} style={{ borderTop: "none", paddingTop: 16, justifyContent: "flex-end" }}>
+                    <button type="button" className={styles.primaryButton} onClick={handleSendEmail}>
+                      Send
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
