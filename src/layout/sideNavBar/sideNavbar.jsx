@@ -133,7 +133,7 @@ const SideNavBar = ({ isMobileSidebarOpen, toggleMobileSidebar }) => {
         { id: 'dashboard', path: '/', icon: OverviewIcon, label: 'Dashboard' },
         { id: 'users', path: '/users', icon: OverviewIcon, label: 'Users' },
         { id: 'revenue', path: '/revenue', icon: OverviewIcon, label: 'Revenue' }, // NEW
-        { id: 'reports', path: '/reports', icon: OverviewIcon, label: 'Reports' }
+        // { id: 'reports', path: '/reports', icon: OverviewIcon, label: 'Reports' }
       ]
     : [])
 ];
