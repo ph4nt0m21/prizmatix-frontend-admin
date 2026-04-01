@@ -16,6 +16,7 @@ import {
   CancelPayoutAPI,
   MarkPayoutPaidAPI,
   GetPayoutOrganizerContactAPI,
+  ContactOrganizerAPI,
   GetPayoutBillAPI,
   GetRevenueDashboardAPI,
   GetFeeConfigDefaultAPI,
@@ -77,7 +78,6 @@ export default function RevenuePage() {
   // Contact modal email form (subject, message, attachments)
   const [emailSubject, setEmailSubject] = useState("");
   const [emailMessage, setEmailMessage] = useState("");
-  const [emailFiles, setEmailFiles] = useState([]);
 
   // Revenue dashboard (all organizations); 403 = super admin required
   const [dashboardData, setDashboardData] = useState({
@@ -386,15 +386,22 @@ export default function RevenuePage() {
         const blob = res.data;
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement("a");
+        a.style.display = "none";
         a.href = url;
         a.download = `payout-bill-${id}.pdf`;
         document.body.appendChild(a);
         a.click();
-        window.URL.revokeObjectURL(url);
-        a.remove();
+        
+        // Delay revocation slightly to ensure the browser captures the download
+        setTimeout(() => {
+          window.URL.revokeObjectURL(url);
+          a.remove();
+        }, 100);
+        
         toast.success("Bill downloaded.");
       })
-      .catch(() => {
+      .catch((err) => {
+        console.error("Download bill error:", err);
         toast.error("Failed to download bill.");
       })
       .finally(() => setActionLoadingId(null));
@@ -406,10 +413,16 @@ export default function RevenuePage() {
       .then((res) => {
         const d = res?.data?.data;
         if (d) {
-          setContactModal({ email: d.email, firstName: d.firstName, lastName: d.lastName, mobileNumber: d.mobileNumber, organizationName: d.organizationName });
+          setContactModal({
+            id,
+            email: d.email,
+            firstName: d.firstName,
+            lastName: d.lastName,
+            mobileNumber: d.mobileNumber,
+            organizationName: d.organizationName,
+          });
           setEmailSubject("");
           setEmailMessage("");
-          setEmailFiles([]);
         } else toast.error("Contact details not found.");
       })
       .catch((err) => {
@@ -419,24 +432,44 @@ export default function RevenuePage() {
   }
 
   function handleSendEmail() {
-    if (!contactModal?.email) return;
-    const subject = encodeURIComponent(emailSubject || "");
-    const body = encodeURIComponent(emailMessage || "");
-    const mailto = `mailto:${contactModal.email}?subject=${subject}&body=${body}`;
-    window.location.href = mailto;
-    toast.success("Opening your email client.");
+    if (!contactModal?.id) return;
+    const subject = emailSubject.trim();
+    const message = emailMessage.trim();
+
+    if (!subject || !message) {
+      toast.error("Subject and message are required.");
+      return;
+    }
+
+    setActionLoadingId(contactModal.id);
+    ContactOrganizerAPI(contactModal.id, { subject, message })
+      .then((res) => {
+        if (res.status === 200 && res.data?.sent === true) {
+          toast.success("Email sent to organizer");
+          setContactModal(null);
+          setEmailSubject("");
+          setEmailMessage("");
+        } else {
+          toast.error(res.data?.message || "Failed to send email.");
+        }
+      })
+      .catch((err) => {
+        const status = err?.response?.status;
+        const message = err?.response?.data?.message;
+
+        if (status === 400) {
+          toast.error(message || "Validation error.");
+        } else if (status === 403) {
+          toast.error("Super admin access required");
+        } else if (status === 503) {
+          toast.error("Could not send email now. Please try again later.");
+        } else {
+          toast.error(message || "An unexpected error occurred.");
+        }
+      })
+      .finally(() => setActionLoadingId(null));
   }
 
-  function handleEmailFilesChange(e) {
-    const files = e.target.files ? Array.from(e.target.files) : [];
-    const allowed = ["image/jpeg", "image/png", "application/pdf"];
-    const valid = files.filter((f) => allowed.includes(f.type));
-    setEmailFiles((prev) => [...prev, ...valid]);
-  }
-
-  function removeEmailFile(index) {
-    setEmailFiles((prev) => prev.filter((_, i) => i !== index));
-  }
 
 
   // --------------------------
@@ -1126,34 +1159,14 @@ export default function RevenuePage() {
                     onChange={(e) => setEmailMessage(e.target.value)}
                     rows={4}
                   />
-                  <label className={styles.emailFormLabel}>Attachments</label>
-                  <div className={styles.uploadZone}>
-                    <input
-                      type="file"
-                      id="contact-email-attachments"
-                      accept=".jpg,.jpeg,.png,.pdf"
-                      multiple
-                      className={styles.uploadInput}
-                      onChange={handleEmailFilesChange}
-                    />
-                    <label htmlFor="contact-email-attachments" className={styles.uploadLabel}>
-                      <span className={styles.uploadIcon}>↑</span>
-                      <span>Upload anything related to your concern (.jpg, .pdf, .png)</span>
-                    </label>
-                  </div>
-                  {emailFiles.length > 0 && (
-                    <ul className={styles.uploadedFiles}>
-                      {emailFiles.map((f, i) => (
-                        <li key={i}>
-                          {f.name}
-                          <button type="button" className={styles.removeFileBtn} onClick={() => removeEmailFile(i)} aria-label="Remove file">×</button>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
                   <div className={styles.modalFooter} style={{ borderTop: "none", paddingTop: 16, justifyContent: "flex-end" }}>
-                    <button type="button" className={styles.primaryButton} onClick={handleSendEmail}>
-                      Send
+                    <button
+                      type="button"
+                      className={styles.primaryButton}
+                      onClick={handleSendEmail}
+                      disabled={actionLoadingId === contactModal.id}
+                    >
+                      {actionLoadingId === contactModal.id ? "Sending..." : "Send"}
                     </button>
                   </div>
                 </div>

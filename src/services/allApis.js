@@ -261,6 +261,10 @@ export const GetPayoutOrganizerContactAPI = async (id) => {
   return await apiClient.get(`/admin/payouts/${id}/organizer-contact`);
 };
 
+export const ContactOrganizerAPI = async (payoutRequestId, payload) => {
+  return await apiClient.post(`/admin/payouts/${payoutRequestId}/contact-organizer`, payload);
+};
+
 /** Returns binary PDF; use responseType 'arraybuffer' or 'blob' and trigger download. */
 export const GetPayoutBillAPI = async (id) => {
   return await apiClient.get(`/admin/payouts/${id}/bill`, { responseType: "blob" });

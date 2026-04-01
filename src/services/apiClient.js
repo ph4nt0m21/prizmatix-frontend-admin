@@ -20,10 +20,13 @@ apiClient.interceptors.request.use(
       console.warn("No token found for request:", config.url);
     }
     
-    config.headers["Accept"] = "application/json";
+    if (config.responseType !== "blob" && config.responseType !== "arraybuffer") {
+      config.headers["Accept"] = "application/json";
+    }
+
     if (config.data instanceof FormData) {
       config.headers["Content-Type"] = "multipart/form-data";
-    } else {
+    } else if (config.data) {
       config.headers["Content-Type"] = "application/json";
       // Log request body for debugging
       console.log(`Request to ${config.url}:`, config.data);
