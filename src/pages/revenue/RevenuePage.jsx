@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   LineChart,
   Line,
@@ -11,6 +11,25 @@ import {
   Bar,
 } from "recharts";
 import styles from "./revenuePage.module.scss";
+import {
+  CancelPayoutAPI,
+  ContactPayoutOrganizerAPI,
+  GetPayoutOrganizerContactAPI,
+  ListAdminPayoutsAPI,
+  MarkPayoutPaidAPI,
+} from "../../services/allApis";
+
+const PAYOUT_TYPE_LABEL = {
+  FULL: "Full Payout",
+  CUSTOM: "Custom Payout",
+  ADVANCE: "Advance Payout",
+};
+
+const formatPayoutAmount = (amount) =>
+  amount != null ? `NZD $${Number(amount).toFixed(2)}` : "—";
+
+const formatPayoutTimestamp = (value) =>
+  value ? new Date(value).toLocaleString() : "—";
 
 /**
  * RevenuePage (updated) - includes full Fee Configuration CRUD UI (mocked data).
@@ -24,6 +43,18 @@ import styles from "./revenuePage.module.scss";
 export default function RevenuePage() {
   const [activeTab, setActiveTab] = useState("revenue-dashboard");
   const [payoutTab, setPayoutTab] = useState("requests");
+  const [payouts, setPayouts] = useState([]);
+  const [payoutsLoading, setPayoutsLoading] = useState(false);
+  const [payoutsError, setPayoutsError] = useState("");
+  const [openActionMenuId, setOpenActionMenuId] = useState(null);
+  const [contactModalOpen, setContactModalOpen] = useState(false);
+  const [selectedPayout, setSelectedPayout] = useState(null);
+  const [organizerContact, setOrganizerContact] = useState(null);
+  const [contactSubject, setContactSubject] = useState("");
+  const [contactMessage, setContactMessage] = useState("");
+  const [contactLoading, setContactLoading] = useState(false);
+  const [contactSending, setContactSending] = useState(false);
+  const [actionLoadingId, setActionLoadingId] = useState(null);
 
   // --------------------------
   // Charts (static data) - unchanged
@@ -47,49 +78,172 @@ export default function RevenuePage() {
     { name: "Name 6", value: 420 },
   ];
 
-  const payoutRequests = [
-    {
-      organizer: "City Music Festival",
-      event: "City Music Fest 2025",
-      status: "Unfinished",
-      timestamp: "12/01/25 at 9:18:50 AM",
-      daysRemaining: "2 Days",
-      payoutType: "Advance Payout",
-      amount: "$230",
-    },
-    {
-      organizer: "City Music Festival",
-      event: "City Music Fest 2025",
-      status: "Finished",
-      timestamp: "12/01/25 at 9:18:50 AM",
-      daysRemaining: "10 Days",
-      payoutType: "Full Payout",
-      amount: "$230",
-    },
-  ];
+  const fetchPayouts = useCallback(async () => {
+    setPayoutsLoading(true);
+    setPayoutsError("");
+    try {
+      const response = await ListAdminPayoutsAPI();
+      setPayouts(response?.data?.data || []);
+    } catch (error) {
+      setPayouts([]);
+      setPayoutsError(
+        error.response?.data?.message || "Failed to load payout requests."
+      );
+    } finally {
+      setPayoutsLoading(false);
+    }
+  }, []);
 
-  const payoutHistory = [
-    {
-      organizer: "City Music Festival",
-      event: "City Music Fest 2025",
-      eventStatus: "Completed",
-      requestTimestamp: "12/01/25 at 9:18:50 AM",
-      actionTimestamp: "12/01/25 at 9:18:50 AM",
-      payoutType: "Partial Payout",
-      amount: "$230",
-      notes: "--",
-    },
-    {
-      organizer: "City Music Festival",
-      event: "City Music Fest 2025",
-      eventStatus: "Completed",
-      requestTimestamp: "12/01/25 at 9:18:50 AM",
-      actionTimestamp: "12/01/25 at 9:18:50 AM",
-      payoutType: "Full Payout",
-      amount: "$230",
-      notes: "--",
-    },
-  ];
+  useEffect(() => {
+    if (activeTab === "payout-management") {
+      fetchPayouts();
+    }
+  }, [activeTab, fetchPayouts]);
+
+  useEffect(() => {
+    const handleDocumentClick = () => setOpenActionMenuId(null);
+    document.addEventListener("click", handleDocumentClick);
+    return () => document.removeEventListener("click", handleDocumentClick);
+  }, []);
+
+  const pendingPayouts = useMemo(
+    () => payouts.filter((p) => p.status === "PENDING"),
+    [payouts]
+  );
+
+  const historyPayouts = useMemo(
+    () => payouts.filter((p) => p.status === "PAID" || p.status === "CANCELLED"),
+    [payouts]
+  );
+
+  const pendingPayoutAmount = useMemo(
+    () =>
+      pendingPayouts.reduce((sum, payout) => sum + Number(payout.amount || 0), 0),
+    [pendingPayouts]
+  );
+
+  const openContactModal = async (payout) => {
+    setSelectedPayout(payout);
+    setContactModalOpen(true);
+    setOrganizerContact(null);
+    setContactSubject(`Regarding your payout request for ${payout.eventName || "your event"}`);
+    setContactMessage("");
+    setContactLoading(true);
+    try {
+      const response = await GetPayoutOrganizerContactAPI(payout.id);
+      setOrganizerContact(response?.data?.data || null);
+    } catch (error) {
+      alert(
+        error.response?.data?.message ||
+          "Could not load organizer contact details."
+      );
+      setContactModalOpen(false);
+    } finally {
+      setContactLoading(false);
+    }
+  };
+
+  const handleSendContactEmail = async () => {
+    if (!selectedPayout) return;
+    if (!contactSubject.trim() || !contactMessage.trim()) {
+      alert("Subject and message are required.");
+      return;
+    }
+
+    setContactSending(true);
+    try {
+      await ContactPayoutOrganizerAPI(selectedPayout.id, {
+        subject: contactSubject.trim(),
+        message: contactMessage.trim(),
+      });
+      alert("Email sent to organizer.");
+      setContactModalOpen(false);
+      setSelectedPayout(null);
+    } catch (error) {
+      alert(error.response?.data?.message || "Failed to send email.");
+    } finally {
+      setContactSending(false);
+    }
+  };
+
+  const handleMarkPaid = async (payoutId) => {
+    if (!window.confirm("Mark this payout request as paid?")) return;
+    setActionLoadingId(payoutId);
+    try {
+      await MarkPayoutPaidAPI(payoutId);
+      await fetchPayouts();
+    } catch (error) {
+      alert(error.response?.data?.message || "Failed to mark payout as paid.");
+    } finally {
+      setActionLoadingId(null);
+      setOpenActionMenuId(null);
+    }
+  };
+
+  const handleCancelPayout = async (payoutId) => {
+    if (!window.confirm("Cancel this payout request?")) return;
+    setActionLoadingId(payoutId);
+    try {
+      await CancelPayoutAPI(payoutId);
+      await fetchPayouts();
+    } catch (error) {
+      alert(error.response?.data?.message || "Failed to cancel payout request.");
+    } finally {
+      setActionLoadingId(null);
+      setOpenActionMenuId(null);
+    }
+  };
+
+  const renderPayoutActions = (payout) => (
+    <div
+      className={styles.actionMenuWrap}
+      onClick={(event) => event.stopPropagation()}
+    >
+      <button
+        type="button"
+        className={styles.actionDropdown}
+        onClick={() =>
+          setOpenActionMenuId((current) =>
+            current === payout.id ? null : payout.id
+          )
+        }
+      >
+        {actionLoadingId === payout.id ? "Working..." : "Action"}
+      </button>
+      {openActionMenuId === payout.id && (
+        <div className={styles.actionMenu}>
+          <button
+            type="button"
+            className={styles.actionMenuItem}
+            onClick={() => {
+              setOpenActionMenuId(null);
+              openContactModal(payout);
+            }}
+          >
+            Email organizer
+          </button>
+          {payout.status === "PENDING" && (
+            <>
+              <button
+                type="button"
+                className={styles.actionMenuItem}
+                onClick={() => handleMarkPaid(payout.id)}
+              >
+                Mark as paid
+              </button>
+              <button
+                type="button"
+                className={styles.actionMenuItem}
+                onClick={() => handleCancelPayout(payout.id)}
+              >
+                Cancel request
+              </button>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
 
   // --------------------------
   // Fee Configuration (new)
@@ -475,25 +629,29 @@ export default function RevenuePage() {
         <div className={styles.payoutWrapper}>
           <h2 className={styles.sectionTitle}>Payout Requests</h2>
 
+          {payoutsError && (
+            <div className={styles.payoutError}>{payoutsError}</div>
+          )}
+
           <div className={styles.payoutCardRow}>
             <div className={styles.summaryCard}>
-              <div>Active events</div>
-              <h3>02</h3>
+              <div>Pending requests</div>
+              <h3>{pendingPayouts.length}</h3>
             </div>
 
             <div className={styles.summaryCard}>
-              <div>Finished Events Pending payout</div>
-              <h3>02</h3>
+              <div>Finished events pending payout</div>
+              <h3>{pendingPayouts.filter((p) => p.eventFinished).length}</h3>
             </div>
 
             <div className={styles.summaryCard}>
-              <div>Advance Payout requests</div>
-              <h3>02</h3>
+              <div>Advance payout requests</div>
+              <h3>{pendingPayouts.filter((p) => p.payoutType === "ADVANCE").length}</h3>
             </div>
 
             <div className={styles.summaryCard}>
-              <div>Pending Payout amount</div>
-              <h3>$ 12123</h3>
+              <div>Pending payout amount</div>
+              <h3>{formatPayoutAmount(pendingPayoutAmount)}</h3>
             </div>
           </div>
 
@@ -513,7 +671,9 @@ export default function RevenuePage() {
             </button>
           </div>
 
-          {payoutTab === "requests" && (
+          {payoutsLoading ? (
+            <div className={styles.payoutLoading}>Loading payout requests...</div>
+          ) : payoutTab === "requests" ? (
             <div className={styles.tableCard}>
               <table className={styles.table}>
                 <thead>
@@ -522,7 +682,6 @@ export default function RevenuePage() {
                     <th>Event</th>
                     <th>Event Status</th>
                     <th>Request Timestamp</th>
-                    <th>Temp</th>
                     <th>Payout Type</th>
                     <th>Amount</th>
                     <th>Action</th>
@@ -530,67 +689,64 @@ export default function RevenuePage() {
                 </thead>
 
                 <tbody>
-                  {payoutRequests.map((row, i) => (
-                    <tr key={i}>
-                      <td>{row.organizer}</td>
-                      <td>{row.event}</td>
-                      <td>{row.status}</td>
-                      <td>{row.timestamp}</td>
-                      <td>
-                        <div className={styles.tempBadge}>{row.daysRemaining}</div>
-                      </td>
-                      <td>{row.payoutType}</td>
-                      <td>{row.amount}</td>
-                      <td>
-                        <div className={styles.actionDropdown}>Action</div>
-                      </td>
+                  {pendingPayouts.length === 0 ? (
+                    <tr>
+                      <td colSpan={7}>No pending payout requests.</td>
                     </tr>
-                  ))}
+                  ) : (
+                    pendingPayouts.map((row) => (
+                      <tr key={row.id}>
+                        <td>{row.organizerName || "—"}</td>
+                        <td>{row.eventName || "—"}</td>
+                        <td>{row.eventFinished ? "Finished" : "Upcoming"}</td>
+                        <td>{formatPayoutTimestamp(row.requestedAt)}</td>
+                        <td>{PAYOUT_TYPE_LABEL[row.payoutType] || row.payoutType}</td>
+                        <td>{formatPayoutAmount(row.amount)}</td>
+                        <td>{renderPayoutActions(row)}</td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
-          )}
+          ) : (
+            <div className={styles.tableCard}>
+              <table className={styles.table}>
+                <thead>
+                  <tr>
+                    <th>Organizer</th>
+                    <th>Event</th>
+                    <th>Event Status at Payout</th>
+                    <th>Request Timestamp</th>
+                    <th>Payout Type</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
 
-          {payoutTab === "history" && (
-            <>
-              <div className={styles.tableCard}>
-                <table className={styles.table}>
-                  <thead>
+                <tbody>
+                  {historyPayouts.length === 0 ? (
                     <tr>
-                      <th>Organizer</th>
-                      <th>Event</th>
-                      <th>Event Status at Payout</th>
-                      <th>Request Timestamp</th>
-                      <th>Action Timestamp</th>
-                      <th>Payout Type</th>
-                      <th>Amount</th>
-                      <th>Notes</th>
-                      <th>Action</th>
+                      <td colSpan={8}>No payout history yet.</td>
                     </tr>
-                  </thead>
-
-                  <tbody>
-                    {payoutHistory.map((row, i) => (
-                      <tr key={i}>
-                        <td>{row.organizer}</td>
-                        <td>{row.event}</td>
-                        <td>{row.eventStatus}</td>
-                        <td>{row.requestTimestamp}</td>
-                        <td>{row.actionTimestamp}</td>
-                        <td>{row.payoutType}</td>
-                        <td>{row.amount}</td>
-                        <td>{row.notes}</td>
-                        <td>
-                          <div className={styles.actionDropdown}>Action</div>
-                        </td>
+                  ) : (
+                    historyPayouts.map((row) => (
+                      <tr key={row.id}>
+                        <td>{row.organizerName || "—"}</td>
+                        <td>{row.eventName || "—"}</td>
+                        <td>{row.eventFinished ? "Finished" : "Upcoming"}</td>
+                        <td>{formatPayoutTimestamp(row.requestedAt)}</td>
+                        <td>{PAYOUT_TYPE_LABEL[row.payoutType] || row.payoutType}</td>
+                        <td>{formatPayoutAmount(row.amount)}</td>
+                        <td>{row.status}</td>
+                        <td>{renderPayoutActions(row)}</td>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              <div className={styles.downloadButton}>Download Invoice</div>
-            </>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       )}
@@ -901,6 +1057,81 @@ export default function RevenuePage() {
                 }}
               >
                 Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {contactModalOpen && (
+        <div className={styles.modalBackdrop}>
+          <div className={styles.modal}>
+            <div className={styles.modalHeader}>
+              <h3>Email organizer</h3>
+              <button
+                className={styles.modalClose}
+                onClick={() => setContactModalOpen(false)}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className={styles.modalBody}>
+              {contactLoading ? (
+                <div>Loading organizer contact...</div>
+              ) : (
+                <>
+                  <div className={styles.contactSummary}>
+                    <div>
+                      <strong>{organizerContact?.organizationName || selectedPayout?.organizerName || "Organizer"}</strong>
+                    </div>
+                    <div>{organizerContact?.email || selectedPayout?.organizerEmail || "—"}</div>
+                    {(organizerContact?.firstName || organizerContact?.lastName) && (
+                      <div>
+                        {[organizerContact.firstName, organizerContact.lastName]
+                          .filter(Boolean)
+                          .join(" ")}
+                      </div>
+                    )}
+                    {organizerContact?.mobileNumber && (
+                      <div>{organizerContact.mobileNumber}</div>
+                    )}
+                  </div>
+
+                  <label className={styles.inputLabel}>Subject</label>
+                  <input
+                    className={styles.inputFull}
+                    value={contactSubject}
+                    onChange={(e) => setContactSubject(e.target.value)}
+                  />
+
+                  <label className={styles.inputLabel} style={{ marginTop: 12 }}>
+                    Message
+                  </label>
+                  <textarea
+                    className={styles.textarea}
+                    rows={6}
+                    value={contactMessage}
+                    onChange={(e) => setContactMessage(e.target.value)}
+                  />
+                </>
+              )}
+            </div>
+
+            <div className={styles.modalFooter}>
+              <button
+                className={styles.ghostButton}
+                onClick={() => setContactModalOpen(false)}
+                disabled={contactSending}
+              >
+                Cancel
+              </button>
+              <button
+                className={styles.primaryButton}
+                onClick={handleSendContactEmail}
+                disabled={contactLoading || contactSending}
+              >
+                {contactSending ? "Sending..." : "Send email"}
               </button>
             </div>
           </div>

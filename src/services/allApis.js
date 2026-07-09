@@ -237,6 +237,27 @@ export const GetAllOrganizationsAPI = async (data) => {
   return await apiClient.post("/api/organizations/getAll", data);
 };
 
+// =============== PAYOUT (SUPER ADMIN) APIs ===============
+export const ListAdminPayoutsAPI = async () => {
+  return await apiClient.get("/admin/payouts");
+};
+
+export const GetPayoutOrganizerContactAPI = async (payoutId) => {
+  return await apiClient.get(`/admin/payouts/${payoutId}/organizer-contact`);
+};
+
+export const ContactPayoutOrganizerAPI = async (payoutId, data) => {
+  return await apiClient.post(`/admin/payouts/${payoutId}/contact-organizer`, data);
+};
+
+export const CancelPayoutAPI = async (payoutId) => {
+  return await apiClient.post(`/admin/payouts/${payoutId}/cancel`);
+};
+
+export const MarkPayoutPaidAPI = async (payoutId) => {
+  return await apiClient.post(`/admin/payouts/${payoutId}/mark-paid`);
+};
+
 // =============== USERS / ADMINS APIs ===============
 export const GetAllAdminsAPI = async (data) => {
   return await apiClient.post("/admin/getAllAdmins", data);
