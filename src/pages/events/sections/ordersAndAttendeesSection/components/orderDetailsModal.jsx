@@ -64,7 +64,17 @@ const OrderDetailsModal = ({ order, onClose }) => {
                   <div className={styles.ticketInfo}>
                     <span className={styles.ticketName}>
                       {ticket.ticketType}
+                      {ticket.donation ? ' (Donation)' : ''}
                     </span>
+                    <div style={{ marginTop: 6, color: '#4B5563', fontSize: 13 }}>
+                      <strong>{ticket.donation ? 'Donator' : 'Attendee'}:</strong>{' '}
+                      {ticket.attendeeName || 'N/A'}
+                    </div>
+                    {ticket.donationNote ? (
+                      <div style={{ marginTop: 6, whiteSpace: 'pre-wrap', color: '#4B5563', fontSize: 13 }}>
+                        <strong>Notes:</strong> {ticket.donationNote}
+                      </div>
+                    ) : null}
                   </div>
                 </div>
               ))}
@@ -75,12 +85,17 @@ const OrderDetailsModal = ({ order, onClose }) => {
             <div className={styles.sectionHeader}>
               <h4>Attendees</h4>
             </div>
-            {order.attendees &&
+            {order.attendees && order.attendees.length > 0 ? (
               order.attendees.map((attendee, index) => (
                 <div key={index} className={styles.attendeeNameRow}>
                   {attendee.name}
                 </div>
-              ))}
+              ))
+            ) : (
+              <div className={styles.attendeeNameRow} style={{ color: '#9CA3AF' }}>
+                No ticket attendees
+              </div>
+            )}
           </div>
         </div>
 

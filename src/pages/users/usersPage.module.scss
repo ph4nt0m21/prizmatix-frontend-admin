@@ -68,3 +68,78 @@
   color: #444;
 }
 
+
+@media (max-width: 768px) {
+  .pageWrapper {
+    padding: 16px 12px 24px;
+  }
+
+  .title {
+    font-size: 20px;
+    margin-bottom: 14px;
+  }
+
+  .tableWrapper {
+    padding: 12px;
+    border-radius: 10px;
+    overflow: visible;
+  }
+
+  .table {
+    min-width: 0;
+  }
+
+  .table thead {
+    display: none;
+  }
+
+  .table tbody tr {
+    display: block;
+    margin: 0 0 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    background: #fff;
+    padding: 4px 0;
+  }
+
+  .table tbody tr:hover {
+    background: #fff;
+  }
+
+  .table tbody td {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 12px;
+    border-bottom: 1px solid #f3f4f6;
+    white-space: normal;
+    word-break: break-word;
+  }
+
+  .table tbody td:last-child {
+    border-bottom: none;
+  }
+
+  .table tbody td::before {
+    content: attr(data-label);
+    flex-shrink: 0;
+    max-width: 40%;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: #6b7280;
+  }
+
+  .pagination {
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .pagination button {
+    min-height: 40px;
+    padding: 8px 14px;
+  }
+}

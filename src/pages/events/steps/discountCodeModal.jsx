@@ -3,6 +3,7 @@ import PropTypes from "prop-types";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import styles from "./discountCodeModal.module.scss";
+import OptionalLabel from "../../../components/common/optionalLabel/optionalLabel";
 
 /**
  * Helper function to create a Date object from date and time strings.
@@ -51,6 +52,9 @@ const DiscountCodeModal = ({
   onSave = () => {},
   availableTickets = [],
   isExpired = false,
+  saveButtonText = "Save",
+  isSaving = false,
+  viewOnly = false,
 }) => {
   const [activePanel, setActivePanel] = useState('basic');
   const [localDiscountCode, setLocalDiscountCode] = useState({
@@ -83,6 +87,17 @@ const DiscountCodeModal = ({
     });
     setSelectedTickets(discountCode.ticketsApplicable || []);
   }, [discountCode]);
+
+  useEffect(() => {
+    if (!isDropdownOpen) return undefined;
+    const handlePointerDown = (e) => {
+      if (!e.target.closest(`.${styles.customDropdown}`)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handlePointerDown);
+    return () => document.removeEventListener('mousedown', handlePointerDown);
+  }, [isDropdownOpen]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -122,6 +137,7 @@ const DiscountCodeModal = ({
   };
   
   const handleSubmit = () => {
+    if (viewOnly) return;
     const finalDiscountCode = {
       ...localDiscountCode,
       ticketsApplicable: selectedTickets,
@@ -213,7 +229,6 @@ const DiscountCodeModal = ({
                     id="code"
                     name="code"
                     className={styles.formInput}
-                    placeholder="e.g. EARLY10"
                     value={localDiscountCode.code || ""}
                     onChange={handleInputChange}
                   />
@@ -230,8 +245,8 @@ const DiscountCodeModal = ({
                     value={localDiscountCode.type || "percentage"}
                     onChange={handleInputChange}
                   >
-                    <option value="percentage">Percentage (%)</option>
-                    <option value="fixed">Fixed ($)</option>
+                    <option value="percentage">Percentage</option>
+                    <option value="fixed">Fixed</option>
                   </select>
                 </div>
 
@@ -246,7 +261,6 @@ const DiscountCodeModal = ({
                     min="0"
                     step="0.01"
                     className={styles.formInput}
-                    placeholder="e.g. 10"
                     value={localDiscountCode.value || ""}
                     onChange={handleInputChange}
                   />
@@ -254,15 +268,15 @@ const DiscountCodeModal = ({
                 
                 <div className={styles.formGroup}>
                   <label htmlFor="usageLimit" className={styles.formLabel}>
-                    Usage Limit
+                    Usage Limit<OptionalLabel />
                   </label>
+                  <p className={styles.formHelper}>Optional. Leave blank for unlimited uses.</p>
                   <input
                     type="number"
                     id="usageLimit"
                     name="usageLimit"
                     min="0"
                     className={styles.formInput}
-                    placeholder="e.g. 100"
                     value={localDiscountCode.usageLimit || ""}
                     onChange={handleInputChange}
                   />
@@ -290,7 +304,7 @@ const DiscountCodeModal = ({
 
                 <div className={styles.formGroup}>
                   <label className={styles.formLabel}>
-                    Applicable Tickets
+                    Applicable Tickets<OptionalLabel />
                   </label>
                   <p className={styles.formHelper}>Select the tickets to which this coupon code will apply.</p>
                   <div className={styles.customDropdown}>
@@ -327,27 +341,25 @@ const DiscountCodeModal = ({
               // Advance Details Panel
               <>
                 <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>Valid From</label>
+                  <label className={styles.formLabel}>Valid From<OptionalLabel /></label>
                   <DatePicker
                     selected={combineDateAndTime(localDiscountCode.validFromDate, localDiscountCode.validFromTime)}
                     onChange={date => handleDateChange(date, 'validFromDate', 'validFromTime')}
                     showTimeSelect
                     dateFormat="MM/dd/yyyy h:mm aa"
                     className={styles.formInput}
-                    placeholderText="Select start date and time"
                     isClearable
                   />
                 </div>
 
                 <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>Valid Until</label>
+                  <label className={styles.formLabel}>Valid Until<OptionalLabel /></label>
                   <DatePicker
                     selected={combineDateAndTime(localDiscountCode.validUntilDate, localDiscountCode.validUntilTime)}
                     onChange={date => handleDateChange(date, 'validUntilDate', 'validUntilTime')}
                     showTimeSelect
                     dateFormat="MM/dd/yyyy h:mm aa"
                     className={styles.formInput}
-                    placeholderText="Select end date and time"
                     isClearable
                   />
                 </div>
@@ -361,15 +373,18 @@ const DiscountCodeModal = ({
               className={styles.cancelButton}
               onClick={onClose}
             >
-              Cancel
+              {viewOnly ? 'Close' : 'Cancel'}
             </button>
-            <button
-              type="button"
-              className={styles.saveButton}
-              onClick={handleSubmit}
-            >
-              Save
-            </button>
+            {!viewOnly && (
+              <button
+                type="button"
+                className={styles.saveButton}
+                onClick={handleSubmit}
+                disabled={isSaving}
+              >
+                {isSaving ? "Saving..." : saveButtonText}
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -384,6 +399,9 @@ DiscountCodeModal.propTypes = {
   onSave: PropTypes.func,
   availableTickets: PropTypes.array,
   isExpired: PropTypes.bool,
+  saveButtonText: PropTypes.string,
+  isSaving: PropTypes.bool,
+  viewOnly: PropTypes.bool,
 };
 
 export default DiscountCodeModal;

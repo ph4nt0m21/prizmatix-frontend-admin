@@ -91,22 +91,22 @@ export default function ReportsPage() {
             <tbody>
               {reports.map((r, i) => (
                 <tr key={i}>
-                  <td className={styles.linkCell}>{r.eventName}</td>
-                  <td className={styles.linkCell}>{r.orgName}</td>
-                  <td>{r.timestamp}</td>
-                  <td>
+                  <td className={styles.linkCell} data-label="Event Name">{r.eventName}</td>
+                  <td className={styles.linkCell} data-label="Org Name">{r.orgName}</td>
+                  <td data-label="Timestamp">{r.timestamp}</td>
+                  <td data-label="User">
                     <div>{r.userName}</div>
                     <div className={styles.subEmail}>{r.email}</div>
                   </td>
-                  <td>
+                  <td data-label="Device">
                     {r.device.map((d, idx) => (
                       <div key={idx}>{d}</div>
                     ))}
                   </td>
-                  <td>{r.location}</td>
-                  <td>{r.details}</td>
+                  <td data-label="Location">{r.location}</td>
+                  <td data-label="Report Details">{r.details}</td>
 
-                  <td className={styles.actionCell}>
+                  <td className={styles.actionCell} data-label="Action">
                     <div
                       className={styles.actionButton}
                       onClick={() => toggleDropdown(i)}
@@ -165,23 +165,23 @@ export default function ReportsPage() {
             <tbody>
               {history.map((h, i) => (
                 <tr key={i}>
-                  <td className={styles.linkCell}>{h.eventName}</td>
-                  <td className={styles.linkCell}>{h.orgName}</td>
-                  <td>{h.timestamp}</td>
-                  <td>{h.resolvedAt}</td>
-                  <td>
+                  <td className={styles.linkCell} data-label="Event Name">{h.eventName}</td>
+                  <td className={styles.linkCell} data-label="Org Name">{h.orgName}</td>
+                  <td data-label="Report Timestamp">{h.timestamp}</td>
+                  <td data-label="Resolved At">{h.resolvedAt}</td>
+                  <td data-label="User">
                     <div>{h.userName}</div>
                     <div className={styles.subEmail}>{h.email}</div>
                   </td>
-                  <td>
+                  <td data-label="Device">
                     {h.device.map((d, idx) => (
                       <div key={idx}>{d}</div>
                     ))}
                   </td>
-                  <td>{h.location}</td>
-                  <td>{h.details}</td>
+                  <td data-label="Location">{h.location}</td>
+                  <td data-label="Details">{h.details}</td>
 
-                  <td className={styles.actionCell}>
+                  <td className={styles.actionCell} data-label="Action">
                     <div
                       className={styles.actionButton}
                       onClick={() => toggleDropdown(i + "h")}

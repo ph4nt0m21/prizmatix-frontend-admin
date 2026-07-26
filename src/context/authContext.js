@@ -28,10 +28,24 @@ export const AuthProvider = ({ children }) => {
       const token = Cookies.get('token');
       if (token) {
         const storedUserData = localStorage.getItem('userData');
+        let parsedUser = null;
         if (storedUserData) {
-          setCurrentUser(JSON.parse(storedUserData));
+          try {
+            parsedUser = JSON.parse(storedUserData);
+          } catch {
+            parsedUser = null;
+          }
         }
-        setIsAuthenticated(true);
+        // Token alone is not enough — avoid ProtectedRoute crashing on null currentUser.role
+        if (parsedUser && typeof parsedUser === 'object') {
+          setCurrentUser(parsedUser);
+          setIsAuthenticated(true);
+        } else {
+          Cookies.remove('token');
+          localStorage.removeItem('userData');
+          setCurrentUser(null);
+          setIsAuthenticated(false);
+        }
       } else {
         setIsAuthenticated(false);
         setCurrentUser(null);

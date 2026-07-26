@@ -165,9 +165,35 @@ export const GetEventAttendeesAPI = async (eventId) => {
   return await apiClient.get(`/orgDashboard/admin/events/${eventId}/attendees`);
 };
 
+// Donation notes for an event (donation ticket lines)
+export const GetEventDonationNotesAPI = async (eventId) => {
+  return await apiClient.get(`/orgDashboard/admin/events/${eventId}/donation-notes`);
+};
+
 // NEW: API to get all dashboard overview data for a specific event
 export const GetEventDashboardAPI = async (eventId) => {
   return await apiClient.get(`/orgDashboard/events/${eventId}/dashboard`);
+};
+
+export const ReissueOrderEmailAPI = async (orderId) => {
+  return await apiClient.post(`/api/admin/orders/${orderId}/reissue-email`);
+};
+
+// Org-console style payout APIs (used for event manage payout view)
+export const GetPayoutEligibilityAPI = async (eventId) => {
+  return await apiClient.get('/api/payouts/eligibility', { params: { eventId: Number(eventId) } });
+};
+
+export const GetPayoutRequestsAPI = async (eventId) => {
+  return await apiClient.get('/api/payouts/requests', { params: { eventId: Number(eventId) } });
+};
+
+export const CreatePayoutRequestAPI = async (body) => {
+  return await apiClient.post('/api/payouts/request', {
+    eventId: Number(body.eventId),
+    amount: Number(body.amount),
+    payoutType: body.payoutType,
+  });
 };
 
 export const GetEventTicketStructuresAPI = async (eventId) => {

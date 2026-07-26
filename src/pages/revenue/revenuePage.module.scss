@@ -775,3 +775,198 @@
 .toggleSwitch input:checked + .toggleSlider:before {
   transform: translateX(20px);
 }
+
+/* =============================== */
+/* MOBILE RESPONSIVE              */
+/* =============================== */
+
+@media (max-width: 768px) {
+  .pageWrapper {
+    padding: 16px 12px 28px;
+  }
+
+  .topTabs,
+  .subTabs,
+  .tabs {
+    gap: 8px;
+    margin-bottom: 16px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap;
+    padding-bottom: 2px;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+    scrollbar-width: none;
+  }
+
+  .tab,
+  .subTab {
+    flex-shrink: 0;
+    white-space: nowrap;
+    padding: 8px 14px;
+    font-size: 13px;
+    min-height: 40px;
+  }
+
+  .cardRow,
+  .payoutCardRow,
+  .midRow,
+  .feeGrid {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .bigCard,
+  .summaryCard,
+  .feeCard,
+  .largeChartCard,
+  .smallCard,
+  .tableCard {
+    padding: 16px;
+  }
+
+  .cardAmount {
+    font-size: 24px;
+  }
+
+  .sectionTitle {
+    font-size: 18px;
+  }
+
+  .largeChartHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .rangeSelect {
+    width: 100%;
+    min-height: 40px;
+  }
+
+  .tableCard {
+    overflow: visible;
+    padding: 12px;
+  }
+
+  .table {
+    min-width: 0;
+  }
+
+  .table thead {
+    display: none;
+  }
+
+  .table tbody tr {
+    display: block;
+    margin: 0 0 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    background: #fff;
+    padding: 4px 0;
+  }
+
+  .table tbody td {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 12px;
+    border-bottom: 1px solid #f3f4f6;
+    white-space: normal;
+    word-break: break-word;
+  }
+
+  .table tbody td:last-child {
+    border-bottom: none;
+  }
+
+  .table tbody td::before {
+    content: attr(data-label);
+    flex-shrink: 0;
+    max-width: 42%;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: #6b7280;
+  }
+
+  .table tbody td.emptyCell {
+    display: block;
+    text-align: center;
+  }
+
+  .table tbody td.emptyCell::before {
+    content: none;
+  }
+
+  .actionButtons,
+  .table tbody td > div {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .modalBackdrop {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .modal {
+    width: 100%;
+    max-width: 100%;
+    max-height: 92vh;
+    border-radius: 16px 16px 0 0;
+  }
+
+  .modalBody {
+    max-height: calc(92vh - 130px);
+    padding: 14px 16px;
+  }
+
+  .modalHeader,
+  .modalFooter {
+    padding: 12px 16px;
+  }
+
+  .modalFooter {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .modalFooter button,
+  .primaryButton,
+  .secondaryButton,
+  .ghostButton,
+  .dangerButton {
+    width: 100%;
+    min-height: 44px;
+    justify-content: center;
+  }
+
+  .uploadZone {
+    padding: 16px;
+  }
+
+  .historyJson {
+    max-width: 100%;
+  }
+
+  .actionsDropdown {
+    right: 0;
+    left: auto;
+    min-width: 180px;
+  }
+}
+
+@media (max-width: 400px) {
+  .pageWrapper {
+    padding: 12px 10px 24px;
+  }
+
+  .cardAmount {
+    font-size: 22px;
+  }
+}

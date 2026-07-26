@@ -1,9 +1,75 @@
 import React, { useState, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
+import { toast } from 'react-toastify';
 import styles from './artStep.module.scss';
 // --- [NEW] Import the cropping library and its CSS ---
 import ReactCrop, { centerCrop, makeAspectCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
+import { createCroppedJpegFile } from '../../../utils/imageCropUtil';
+import OptionalLabel from '../../../components/common/optionalLabel/optionalLabel';
+import { loadPuter } from '../../../utils/puterLoader';
+import {
+  ART_PLACEHOLDER_BANNER,
+  ART_PLACEHOLDER_THUMBNAIL,
+  applyArtImageFallback,
+} from '../../../constants/artImagePlaceholders';
+
+async function htmlImageElementToFile(img, baseName) {
+  const res = await fetch(img.src);
+  const blob = await res.blob();
+  const ext = blob.type.includes('png') ? 'png' : 'jpeg';
+  return new File([blob], `${baseName}.${ext}`, { type: blob.type || 'image/png' });
+}
+
+function withTimeout(promise, ms, message = 'Request timed out') {
+  return new Promise((resolve, reject) => {
+    const id = setTimeout(() => reject(new Error(message)), ms);
+    promise.then(
+      (value) => {
+        clearTimeout(id);
+        resolve(value);
+      },
+      (err) => {
+        clearTimeout(id);
+        reject(err);
+      }
+    );
+  });
+}
+
+const TXT2IMG_TIMEOUT_MS = 120000;
+
+/**
+ * Puter's Together image backend often fails from the client; prefer OpenAI default, then Gemini.
+ */
+async function generateImageWithPuter(puter, fullPrompt, target) {
+  const ratioOpts =
+    target === 'thumbnail'
+      ? { ratio: { w: 1, h: 1 } }
+      : { ratio: { w: 16, h: 6 } };
+
+  try {
+    return await withTimeout(
+      puter.ai.txt2img(fullPrompt, {
+        model: 'gpt-image-1-mini',
+        quality: 'low',
+      }),
+      TXT2IMG_TIMEOUT_MS,
+      'Image generation timed out. Try again or upload a file.'
+    );
+  } catch (primaryErr) {
+    console.warn('Puter txt2img (OpenAI) failed, trying Gemini', primaryErr);
+    return await withTimeout(
+      puter.ai.txt2img(fullPrompt, {
+        provider: 'gemini',
+        quality: '1K',
+        ...ratioOpts,
+      }),
+      TXT2IMG_TIMEOUT_MS,
+      'Image generation timed out. Try again or upload a file.'
+    );
+  }
+}
 
 
 /**
@@ -20,7 +86,8 @@ const ArtStep = ({
   eventData = {},
   handleInputChange = () => { },
   isValid = false,
-  stepStatus = { visited: false }
+  stepStatus = { visited: false },
+  viewOnly = false,
 }) => {
   const artData = eventData.art || {};
 
@@ -50,7 +117,11 @@ const ArtStep = ({
   const [crop, setCrop] = useState(); // The crop selection state
   const [completedCrop, setCompletedCrop] = useState(null); // The completed crop data
   const imgRef = useRef(null); // Ref to the image element in the cropper
-  const previewCanvasRef = useRef(null); // Ref to the hidden canvas for drawing the preview
+
+  const [aiModalOpen, setAiModalOpen] = useState(false);
+  const [aiTargetType, setAiTargetType] = useState(null);
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [aiGenerating, setAiGenerating] = useState(false);
 
   const supportedTypes = ['.jpg', '.jpeg', '.png', '.webp'];
   const maxSizes = {
@@ -62,15 +133,22 @@ const ArtStep = ({
     // Get the file objects from the parent component's data
     const thumbnailFile = artData.thumbnailFile;
     const bannerFile = artData.bannerFile;
+    const thumbnailUrl = artData.thumbnailUrl || null;
+    const bannerUrl = artData.bannerUrl || null;
 
     // Create new blob URLs only if the files exist
     const newThumbnailUrl = thumbnailFile ? URL.createObjectURL(thumbnailFile) : null;
     const newBannerUrl = bannerFile ? URL.createObjectURL(bannerFile) : null;
 
+    setFiles({
+      thumbnail: thumbnailFile || null,
+      banner: bannerFile || null,
+    });
+
     // Update the local preview state
     setPreviews({
-      thumbnail: newThumbnailUrl,
-      banner: newBannerUrl
+      thumbnail: newThumbnailUrl || thumbnailUrl,
+      banner: newBannerUrl || bannerUrl
     });
         // IMPORTANT: Return a cleanup function
     // This runs when the component unmounts or when the files change,
@@ -84,7 +162,7 @@ const ArtStep = ({
       }
     };
     // This effect's dependency array ensures it re-runs if the file objects change
-  }, [artData.thumbnailFile, artData.bannerFile]);
+  }, [artData.thumbnailFile, artData.bannerFile, artData.thumbnailUrl, artData.bannerUrl]);
 
   const releaseFilePreviewUrl = (url) => {
     if (url && url.startsWith('blob:')) {
@@ -196,10 +274,66 @@ const isFileSizeValid = (file, maxSizeMB) => {
   };
 
   const handleBrowseClick = (type) => {
+    if (viewOnly) return;
     if (type === 'thumbnail' && thumbnailInputRef.current) {
       thumbnailInputRef.current.click();
     } else if (type === 'banner' && bannerInputRef.current) {
       bannerInputRef.current.click();
+    }
+  };
+
+  const openAiModal = (type) => {
+    setAiTargetType(type);
+    const name = eventData?.name?.trim();
+    setAiPrompt(name ? `Promotional artwork for: ${name}` : '');
+    setAiModalOpen(true);
+  };
+
+  const closeAiModal = () => {
+    if (aiGenerating) return;
+    setAiModalOpen(false);
+    setAiTargetType(null);
+    setAiPrompt('');
+  };
+
+  const handleAiGenerate = async () => {
+    if (!aiTargetType || !aiPrompt.trim()) return;
+    const target = aiTargetType;
+    const promptText = aiPrompt.trim();
+    setAiGenerating(true);
+    try {
+      const puter = await loadPuter();
+      const eventName = eventData?.name?.trim();
+      const styleHint =
+        target === 'thumbnail'
+          ? 'Square composition, eye-catching, suitable as a small event listing thumbnail, professional graphic design, no tiny illegible text.'
+          : 'Wide cinematic banner, atmospheric, suitable for top of event page; leave visual breathing room for titles.';
+      const fullPrompt = [promptText, eventName && `Event title: ${eventName}.`, styleHint]
+        .filter(Boolean)
+        .join(' ');
+
+      const imageEl = await generateImageWithPuter(puter, fullPrompt, target);
+      const file = await htmlImageElementToFile(
+        imageEl,
+        target === 'thumbnail' ? 'ai-thumbnail' : 'ai-banner'
+      );
+
+      setAiModalOpen(false);
+      setAiTargetType(null);
+      setAiPrompt('');
+      handleFileChange(target, file);
+      toast.success(
+        `${target === 'thumbnail' ? 'Thumbnail' : 'Banner'} generated. Crop or replace if needed.`
+      );
+    } catch (err) {
+      console.error(err);
+      const msg =
+        typeof err?.message === 'string' && err.message.trim()
+          ? err.message
+          : 'Image generation failed. Try again, or upload an image instead.';
+      toast.error(msg);
+    } finally {
+      setAiGenerating(false);
     }
   };
 
@@ -247,57 +381,23 @@ const isFileSizeValid = (file, maxSizeMB) => {
     );
   }
 
-  const handleCropComplete = () => {
-    if (completedCrop?.width && completedCrop?.height && imgRef.current && previewCanvasRef.current) {
-      const image = imgRef.current;
-      const canvas = previewCanvasRef.current;
-      const crop = completedCrop;
+  const handleCropComplete = async () => {
+    if (!completedCrop?.width || !completedCrop?.height || !imgRef.current || !originalFile) {
+      return;
+    }
 
-      const scaleX = image.naturalWidth / image.width;
-      const scaleY = image.naturalHeight / image.height;
-      const ctx = canvas.getContext('2d');
-      const pixelRatio = window.devicePixelRatio;
+    try {
+      const croppedFile = await createCroppedJpegFile({
+        image: imgRef.current,
+        crop: completedCrop,
+        fileName: originalFile.name,
+        quality: 0.85,
+      });
 
-      canvas.width = crop.width * pixelRatio * scaleX;
-      canvas.height = crop.height * pixelRatio * scaleY;
-
-      ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
-      ctx.imageSmoothingQuality = 'high';
-
-      ctx.drawImage(
-        image,
-        crop.x * scaleX,
-        crop.y * scaleY,
-        crop.width * scaleX,
-        crop.height * scaleY,
-        0,
-        0,
-        crop.width * scaleX,
-        crop.height * scaleY
-      );
-
-      // Define your desired quality level (0.0 to 1.0)
-      const quality = 0.85; 
-
-      canvas.toBlob(
-        (blob) => {
-          if (!blob) {
-            console.error('Canvas is empty');
-            return;
-          }
-          
-          // If the original was a PNG, we should update the name to reflect the new JPG format
-          const newFileName = originalFile.name.replace(/\.(png|gif)$/i, '.jpg');
-
-          const croppedFile = new File([blob], newFileName, {
-            type: 'image/jpeg', // Force the blob to be treated as a JPEG
-          });
-          handleCropFinalized(croppingType, croppedFile);
-          handleCancelCrop();
-        },
-        'image/jpeg', // Force the output format to JPEG
-        quality 
-      );
+      handleCropFinalized(croppingType, croppedFile);
+      handleCancelCrop();
+    } catch (error) {
+      console.error('Failed to crop image:', error);
     }
   };
 
@@ -310,43 +410,53 @@ const isFileSizeValid = (file, maxSizeMB) => {
     setCrop(undefined);
   };
 
+  const hasThumbnailAsset = Boolean(files.thumbnail || previews.thumbnail);
+  const hasBannerAsset = Boolean(files.banner || previews.banner);
+
   return (
     <div className={styles.stepContainer}>
       <div className={styles.stepHeader}>
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={styles.stepIcon}>
           <path d="M19 5V19H5V5H19ZM19 3H5C3.9 3 3 3.9 3 5V19C3 20.1 3.9 21 5 21H19C20.1 21 21 20.1 21 19V5C21 3.9 20.1 3 19 3ZM14.14 11.86L11.14 15.73L9 13.14L6 17H18L14.14 11.86Z" fill="#7C3AED" />
         </svg>
-        <h2 className={styles.stepTitle}>Thumbnail and Banner</h2>
+        <div className={styles.stepTextContainer}>
+          <h2 className={styles.stepTitle}>Thumbnail and Banner</h2>
+          <p className={styles.stepDescription}>Add images to represent your event.</p>
+        </div>
       </div>
 
       <div className={styles.formSection}>
         {/* Thumbnail Upload Section */}
         <div className={styles.formGroup}>
           <label className={styles.formLabel}>
-            Thumbnail
+            Thumbnail<OptionalLabel />
           </label>
           <p className={styles.formDescription}>
             A square image that will be displayed in event listings and search results
           </p>
 
           <div
-            className={`${styles.uploadDropzoneThumbnail} ${dragActive.thumbnail ? styles.dragActive : ''} ${files.thumbnail ? styles.hasFile : ''}`}
+            className={`${styles.uploadDropzoneThumbnail} ${dragActive.thumbnail ? styles.dragActive : ''} ${hasThumbnailAsset ? styles.hasFile : ''}`}
             onDragEnter={(e) => handleDrag(e, 'thumbnail', 'enter')}
             onDragOver={(e) => handleDrag(e, 'thumbnail', 'enter')}
             onDragLeave={(e) => handleDrag(e, 'thumbnail', 'leave')}
             onDrop={(e) => handleDrag(e, 'thumbnail', 'drop')}
           >
-            {files.thumbnail ? (
+            {hasThumbnailAsset ? (
               <div className={styles.imagePreview}>
                 <img
                   src={previews.thumbnail}
                   alt="Thumbnail Preview"
                   className={styles.previewImage}
+                  onError={(e) =>
+                    applyArtImageFallback(e, ART_PLACEHOLDER_THUMBNAIL)
+                  }
                 />
                 <div className={styles.fileInfo}>
-                  <span className={styles.fileName}>{files.thumbnail.name}</span>
-                  <span className={styles.fileSize}>{formatFileSize(files.thumbnail.size)}</span>
+                  <span className={styles.fileName}>{files.thumbnail?.name || artData.thumbnailName || 'Current thumbnail'}</span>
+                  <span className={styles.fileSize}>{files.thumbnail?.size ? formatFileSize(files.thumbnail.size) : 'Uploaded image'}</span>
                 </div>
+                {!viewOnly && (
                 <button
                   type="button"
                   className={styles.removeButton}
@@ -357,6 +467,11 @@ const isFileSizeValid = (file, maxSizeMB) => {
                     <path d="M19 6.41L17.59 5L12 10.59L6.41 5L5 6.41L10.59 12L5 17.59L6.41 19L12 13.41L17.59 19L19 17.59L13.41 12L19 6.41Z" fill="currentColor" />
                   </svg>
                 </button>
+                )}
+              </div>
+            ) : viewOnly ? (
+              <div className={styles.uploadInterfaceThumbnail}>
+                <p className={styles.uploadText}>No thumbnail uploaded</p>
               </div>
             ) : (
               <div className={styles.uploadInterfaceThumbnail}>
@@ -384,6 +499,17 @@ const isFileSizeValid = (file, maxSizeMB) => {
                   accept=".jpg,.jpeg,.png,.webp"
                   onChange={(e) => handleFileInputChange(e, 'thumbnail')}
                 />
+                <button
+                  type="button"
+                  className={styles.generateAiButton}
+                  onClick={() => openAiModal('thumbnail')}
+                  disabled={aiGenerating}
+                >
+                  Generate with AI
+                </button>
+                <p className={styles.puterNote}>
+                  Uses Puter.js (you may be asked to sign in to Puter for AI).
+                </p>
               </div>
             )}
           </div>
@@ -412,30 +538,34 @@ const isFileSizeValid = (file, maxSizeMB) => {
         {/* Banner Upload Section */}
         <div className={styles.formGroup}>
           <label className={styles.formLabel}>
-            Banner
+            Banner<OptionalLabel />
           </label>
           <p className={styles.formDescription}>
             A wide image that will be displayed at the top of your event page
           </p>
 
           <div
-            className={`${styles.uploadDropzoneBanner} ${dragActive.banner ? styles.dragActive : ''} ${files.banner ? styles.hasFile : ''}`}
+            className={`${styles.uploadDropzoneBanner} ${dragActive.banner ? styles.dragActive : ''} ${hasBannerAsset ? styles.hasFile : ''}`}
             onDragEnter={(e) => handleDrag(e, 'banner', 'enter')}
             onDragOver={(e) => handleDrag(e, 'banner', 'enter')}
             onDragLeave={(e) => handleDrag(e, 'banner', 'leave')}
             onDrop={(e) => handleDrag(e, 'banner', 'drop')}
           >
-            {files.banner ? (
+            {hasBannerAsset ? (
               <div className={styles.imagePreview}>
                 <img
                   src={previews.banner}
                   alt="Banner Preview"
                   className={styles.previewImage}
+                  onError={(e) =>
+                    applyArtImageFallback(e, ART_PLACEHOLDER_BANNER)
+                  }
                 />
                 <div className={styles.fileInfo}>
-                  <span className={styles.fileName}>{files.banner.name}</span>
-                  <span className={styles.fileSize}>{formatFileSize(files.banner.size)}</span>
+                  <span className={styles.fileName}>{files.banner?.name || artData.bannerName || 'Current banner'}</span>
+                  <span className={styles.fileSize}>{files.banner?.size ? formatFileSize(files.banner.size) : 'Uploaded image'}</span>
                 </div>
+                {!viewOnly && (
                 <button
                   type="button"
                   className={styles.removeButton}
@@ -446,6 +576,11 @@ const isFileSizeValid = (file, maxSizeMB) => {
                     <path d="M19 6.41L17.59 5L12 10.59L6.41 5L5 6.41L10.59 12L5 17.59L6.41 19L12 13.41L17.59 19L19 17.59L13.41 12L19 6.41Z" fill="currentColor" />
                   </svg>
                 </button>
+                )}
+              </div>
+            ) : viewOnly ? (
+              <div className={styles.uploadInterfaceBanner}>
+                <p className={styles.uploadText}>No banner uploaded</p>
               </div>
             ) : (
               <div className={styles.uploadInterfaceBanner}>
@@ -471,6 +606,17 @@ const isFileSizeValid = (file, maxSizeMB) => {
                   accept=".jpg,.jpeg,.png,.webp"
                   onChange={(e) => handleFileInputChange(e, 'banner')}
                 />
+                <button
+                  type="button"
+                  className={styles.generateAiButton}
+                  onClick={() => openAiModal('banner')}
+                  disabled={aiGenerating}
+                >
+                  Generate with AI
+                </button>
+                <p className={styles.puterNote}>
+                  Uses Puter.js (you may be asked to sign in to Puter for AI).
+                </p>
               </div>
             )}
           </div>
@@ -513,8 +659,6 @@ const isFileSizeValid = (file, maxSizeMB) => {
         </div>
       </div>
 
-      <canvas ref={previewCanvasRef} style={{ display: 'none' }} />
-
       {showCropModal && (
         <div className={styles.cropModalBackdrop}>
           <div className={styles.cropModalContent}>
@@ -535,6 +679,14 @@ const isFileSizeValid = (file, maxSizeMB) => {
                     alt="Crop Preview"
                     onLoad={onImageLoad}
                     style={{ maxHeight: '70vh' }}
+                    onError={(e) =>
+                      applyArtImageFallback(
+                        e,
+                        croppingType === 'banner'
+                          ? ART_PLACEHOLDER_BANNER
+                          : ART_PLACEHOLDER_THUMBNAIL
+                      )
+                    }
                   />
                 </ReactCrop>
               )}
@@ -542,6 +694,46 @@ const isFileSizeValid = (file, maxSizeMB) => {
             <div className={styles.cropModalActions}>
               <button type="button" onClick={handleCancelCrop} className={styles.cancelButton}>Cancel</button>
               <button type="button" onClick={handleCropComplete} className={styles.doneButton}>Done</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {aiModalOpen && (
+        <div
+          className={styles.aiModalBackdrop}
+          onClick={(e) => e.target === e.currentTarget && closeAiModal()}
+          role="presentation"
+        >
+          <div className={styles.aiModalContent} role="dialog" aria-modal="true" aria-labelledby="ai-generate-title">
+            <h2 id="ai-generate-title" className={styles.aiModalTitle}>
+              {aiTargetType === 'banner' ? 'Generate banner' : 'Generate thumbnail'}
+            </h2>
+            <p className={styles.aiModalDescription}>
+              Describe the image you want. It will open in the crop tool so you can fine-tune it.
+            </p>
+            <label className={styles.aiLabel} htmlFor="ai-prompt-input">Prompt</label>
+            <textarea
+              id="ai-prompt-input"
+              className={styles.aiTextarea}
+              value={aiPrompt}
+              onChange={(e) => setAiPrompt(e.target.value)}
+              rows={4}
+              placeholder="Describe the artwork style and scene"
+              disabled={aiGenerating}
+            />
+            <div className={styles.aiModalActions}>
+              <button type="button" onClick={closeAiModal} className={styles.cancelButton} disabled={aiGenerating}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleAiGenerate}
+                className={styles.doneButton}
+                disabled={aiGenerating || !aiPrompt.trim()}
+              >
+                {aiGenerating ? 'Generating…' : 'Generate'}
+              </button>
             </div>
           </div>
         </div>
@@ -554,7 +746,8 @@ ArtStep.propTypes = {
   eventData: PropTypes.object,
   handleInputChange: PropTypes.func,
   isValid: PropTypes.bool,
-  stepStatus: PropTypes.object
+  stepStatus: PropTypes.object,
+  viewOnly: PropTypes.bool,
 };
 
 export default ArtStep;

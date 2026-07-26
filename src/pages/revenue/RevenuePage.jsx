@@ -64,7 +64,6 @@ function formatRevenueCurrency(amount) {
 
 export default function RevenuePage() {
   const [activeTab, setActiveTab] = useState("revenue-dashboard");
-  const [payoutTab, setPayoutTab] = useState("requests");
   const [payoutStatusFilter, setPayoutStatusFilter] = useState(null); // null | 'PENDING' | 'PAID' (set by View from dashboard)
 
   // Super admin payout requests (from API)
@@ -92,28 +91,6 @@ export default function RevenuePage() {
   const [dashboardForbidden, setDashboardForbidden] = useState(false);
   const [chartGranularity, setChartGranularity] = useState("MONTHLY"); // WEEKLY | MONTHLY | YEARLY
 
-  const payoutHistory = [
-    {
-      organizer: "City Music Festival",
-      event: "City Music Fest 2025",
-      eventStatus: "Completed",
-      requestTimestamp: "12/01/25 at 9:18:50 AM",
-      actionTimestamp: "12/01/25 at 9:18:50 AM",
-      payoutType: "Partial Payout",
-      amount: "$230",
-      notes: "--",
-    },
-    {
-      organizer: "City Music Festival",
-      event: "City Music Fest 2025",
-      eventStatus: "Completed",
-      requestTimestamp: "12/01/25 at 9:18:50 AM",
-      actionTimestamp: "12/01/25 at 9:18:50 AM",
-      payoutType: "Full Payout",
-      amount: "$230",
-      notes: "--",
-    },
-  ];
 
   // --------------------------
   // Fee Configuration (API-driven)
@@ -141,7 +118,7 @@ export default function RevenuePage() {
 
   // Fetch payout requests when on Revenue Dashboard (for counts) or Payout Management (super admin API)
   useEffect(() => {
-    if (activeTab !== "revenue-dashboard" && (activeTab !== "payout-management" || payoutTab !== "requests"))
+    if (activeTab !== "revenue-dashboard" && activeTab !== "payout-management")
       return;
     setPayoutsLoading(true);
     setPayoutsError(null);
@@ -163,7 +140,7 @@ export default function RevenuePage() {
         }
       })
       .finally(() => setPayoutsLoading(false));
-  }, [activeTab, payoutTab]);
+  }, [activeTab]);
 
   // Fetch revenue dashboard when on Revenue Dashboard tab (only trend uses from/to/granularity)
   useEffect(() => {
@@ -572,8 +549,8 @@ export default function RevenuePage() {
                       </div>
                       <div
                         className={styles.payoutAction}
-                        onClick={() => { setPayoutStatusFilter("PENDING"); setPayoutTab("requests"); setActiveTab("payout-management"); }}
-                        onKeyDown={(e) => e.key === "Enter" && (setPayoutStatusFilter("PENDING"), setPayoutTab("requests"), setActiveTab("payout-management"))}
+                        onClick={() => { setPayoutStatusFilter("PENDING"); setActiveTab("payout-management"); }}
+                        onKeyDown={(e) => e.key === "Enter" && (setPayoutStatusFilter("PENDING"), setActiveTab("payout-management"))}
                         role="button"
                         tabIndex={0}
                       >
@@ -587,8 +564,8 @@ export default function RevenuePage() {
                       </div>
                       <div
                         className={styles.payoutAction}
-                        onClick={() => { setPayoutStatusFilter("PAID"); setPayoutTab("requests"); setActiveTab("payout-management"); }}
-                        onKeyDown={(e) => e.key === "Enter" && (setPayoutStatusFilter("PAID"), setPayoutTab("requests"), setActiveTab("payout-management"))}
+                        onClick={() => { setPayoutStatusFilter("PAID"); setActiveTab("payout-management"); }}
+                        onKeyDown={(e) => e.key === "Enter" && (setPayoutStatusFilter("PAID"), setActiveTab("payout-management"))}
                         role="button"
                         tabIndex={0}
                       >
@@ -670,24 +647,6 @@ export default function RevenuePage() {
             </div>
           </div>
 
-          <div className={styles.subTabs}>
-            <button
-              className={`${styles.subTab} ${payoutTab === "requests" ? styles.active : ""}`}
-              onClick={() => setPayoutTab("requests")}
-            >
-              Requests
-            </button>
-
-            <button
-              className={`${styles.subTab} ${payoutTab === "history" ? styles.active : ""}`}
-              onClick={() => setPayoutTab("history")}
-            >
-              History
-            </button>
-          </div>
-
-          {payoutTab === "requests" && (
-            <>
               {payoutsForbidden && (
                 <div className={styles.tableCard}>
                   <p className={styles.forbiddenMessage}>Super admin access required. You do not have permission to view or manage payout requests.</p>
@@ -734,18 +693,18 @@ export default function RevenuePage() {
                       ) : (
                         filteredPayouts.map((row) => (
                           <tr key={row.id}>
-                            <td>{row.organizerName ?? "—"}</td>
-                            <td>{row.eventName ?? "—"}</td>
-                            <td>{eventStatusLabel(row.eventFinished)}</td>
-                            <td>{formatRequestedAt(row.requestedAt)}</td>
-                            <td>{row.payoutType ?? "—"}</td>
-                            <td>{formatAmount(row.amount)}</td>
-                            <td>
+                            <td data-label="Organizer">{row.organizerName ?? "—"}</td>
+                            <td data-label="Event">{row.eventName ?? "—"}</td>
+                            <td data-label="Event status">{eventStatusLabel(row.eventFinished)}</td>
+                            <td data-label="Requested at">{formatRequestedAt(row.requestedAt)}</td>
+                            <td data-label="Payout type">{row.payoutType ?? "—"}</td>
+                            <td data-label="Amount">{formatAmount(row.amount)}</td>
+                            <td data-label="Status">
                               <span className={styles[`status_${row.status?.toLowerCase()}`] ?? styles.statusBadge}>
                                 {row.status ?? "—"}
                               </span>
                             </td>
-                            <td>
+                            <td data-label="Actions">
                               <div className={styles.actionsCell}>
                                 <button
                                   type="button"
@@ -809,50 +768,7 @@ export default function RevenuePage() {
                   </table>
                 </div>
               )}
-            </>
-          )}
 
-          {payoutTab === "history" && (
-            <>
-              <div className={styles.tableCard}>
-                <table className={styles.table}>
-                  <thead>
-                    <tr>
-                      <th>Organizer</th>
-                      <th>Event</th>
-                      <th>Event Status at Payout</th>
-                      <th>Request Timestamp</th>
-                      <th>Action Timestamp</th>
-                      <th>Payout Type</th>
-                      <th>Amount</th>
-                      <th>Notes</th>
-                      <th>Action</th>
-                    </tr>
-                  </thead>
-
-                  <tbody>
-                    {payoutHistory.map((row, i) => (
-                      <tr key={i}>
-                        <td>{row.organizer}</td>
-                        <td>{row.event}</td>
-                        <td>{row.eventStatus}</td>
-                        <td>{row.requestTimestamp}</td>
-                        <td>{row.actionTimestamp}</td>
-                        <td>{row.payoutType}</td>
-                        <td>{row.amount}</td>
-                        <td>{row.notes}</td>
-                        <td>
-                          <div className={styles.actionDropdown}>Action</div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              <div className={styles.downloadButton}>Download Invoice</div>
-            </>
-          )}
         </div>
       )}
 
@@ -904,13 +820,13 @@ export default function RevenuePage() {
                   ) : (
                     feeConfigList.map((row) => (
                       <tr key={row.organizationId}>
-                        <td>{row.organizationName ?? "—"}</td>
-                        <td>{row.mode ?? "Default"}</td>
-                        <td>{row.feeDisplay ?? "—"}</td>
-                        <td>{row.notes ?? "—"}</td>
-                        <td>{row.lastUpdated ? new Date(row.lastUpdated).toLocaleString() : "—"}</td>
-                        <td>
-                          <div style={{ display: "flex", gap: 8 }}>
+                        <td data-label="Organization">{row.organizationName ?? "—"}</td>
+                        <td data-label="Mode">{row.mode ?? "Default"}</td>
+                        <td data-label="Fee">{row.feeDisplay ?? "—"}</td>
+                        <td data-label="Notes">{row.notes ?? "—"}</td>
+                        <td data-label="Last Updated">{row.lastUpdated ? new Date(row.lastUpdated).toLocaleString() : "—"}</td>
+                        <td data-label="Action">
+                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
                             {row.hasOverride ? (
                               <>
                                 <button className={styles.linkButton} onClick={() => openEditModal(row)}>
@@ -1063,15 +979,15 @@ export default function RevenuePage() {
                       ) : (
                         historyList.map((h, idx) => (
                           <tr key={idx}>
-                            <td>{h.timestamp ? new Date(h.timestamp).toLocaleString() : "—"}</td>
-                            <td>{h.admin ?? "—"}</td>
-                            <td>{h.action ?? "—"}</td>
-                            <td>
+                            <td data-label="Timestamp">{h.timestamp ? new Date(h.timestamp).toLocaleString() : "—"}</td>
+                            <td data-label="Admin">{h.admin ?? "—"}</td>
+                            <td data-label="Action">{h.action ?? "—"}</td>
+                            <td data-label="Old">
                               <pre className={styles.historyJson}>
                                 {h.oldValue != null ? (typeof h.oldValue === "string" ? h.oldValue : JSON.stringify(h.oldValue)) : "—"}
                               </pre>
                             </td>
-                            <td>
+                            <td data-label="New">
                               <pre className={styles.historyJson}>
                                 {h.newValue != null ? (typeof h.newValue === "string" ? h.newValue : JSON.stringify(h.newValue)) : "—"}
                               </pre>

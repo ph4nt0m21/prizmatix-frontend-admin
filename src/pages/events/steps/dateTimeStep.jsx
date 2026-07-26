@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, forwardRef } from 'react';
 import PropTypes from 'prop-types';
 import DatePicker from 'react-datepicker';
+import { resolveFormEventTimezone } from '../../../utils/datetimeUtil';
 
 // Import the default styles for the date picker pop-up
 import 'react-datepicker/dist/react-datepicker.css';
@@ -10,8 +11,40 @@ import styles from './dateTimeStep.module.scss';
 
 const parseDateTimeStrings = (dateStr, timeStr) => {
   if (!dateStr || !timeStr) return null;
-  return new Date(`${dateStr}T${timeStr}`);
+  const normalizedTime = String(timeStr).trim().slice(0, 5);
+  const [year, month, day] = String(dateStr).split('-').map((value) => parseInt(value, 10));
+  const [hours, minutes] = normalizedTime.split(':').map((value) => parseInt(value, 10));
+  if (
+    Number.isNaN(year) ||
+    Number.isNaN(month) ||
+    Number.isNaN(day) ||
+    Number.isNaN(hours) ||
+    Number.isNaN(minutes)
+  ) {
+    return null;
+  }
+  return new Date(year, month - 1, day, hours, minutes, 0, 0);
 };
+
+const buildDateTimePayload = (start, end, timezone) => ({
+  startDate: formatDateForParent(start),
+  startTime: formatTimeForParent(start),
+  endDate: formatDateForParent(end),
+  endTime: formatTimeForParent(end),
+  timezone: resolveFormEventTimezone(timezone),
+});
+
+const dateTimePayloadKey = (dateTime = {}) =>
+  [
+    dateTime.startDate || '',
+    (dateTime.startTime || '').slice(0, 5),
+    dateTime.endDate || '',
+    (dateTime.endTime || '').slice(0, 5),
+    dateTime.timezone || '',
+  ].join('|');
+
+const dateTimePayloadEquals = (left = {}, right = {}) =>
+  dateTimePayloadKey(left) === dateTimePayloadKey(right);
 
 const formatDateForParent = (date) => {
   if (!date) return '';
@@ -43,6 +76,18 @@ const formatTimeForDisplay = (date) => {
   return `${hours}:${minutes}`;
 };
 
+const toDayStart = (date) => {
+  if (!date) return null;
+  const day = new Date(date);
+  day.setHours(0, 0, 0, 0);
+  return day;
+};
+
+const isSameCalendarDay = (firstDate, secondDate) => {
+  if (!firstDate || !secondDate) return false;
+  return toDayStart(firstDate).getTime() === toDayStart(secondDate).getTime();
+};
+
 // --- Custom Input Components ---
 
 const CustomDateInput = forwardRef(({ value, onClick, onChange, onFocus, onBlur, placeholder }, ref) => (
@@ -59,7 +104,7 @@ const CustomDateInput = forwardRef(({ value, onClick, onChange, onFocus, onBlur,
         />
         <div className={styles.inputIcon} onClick={onClick}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M19 4H18V2H16V4H8V2H6V4H5C3.89 4 3.01 4.9 3.01 6L3 20C3 21.1 3.89 22 5 22H19C20.1 22 21 21.1 21 20V6C21 4.9 20.1 4 19 4ZM19 20H5V9H19V20Z" fill="#7C3AED" />
+                <path d="M19 4H18V2H16V4H8V2H6V4H5C3.89 4 3.01 4.9 3.01 6L3 20C3 21.1 3.89 22 5 22H19C20.1 22 21 21.1 21 20V6C21 4.9 20.1 4 19 4ZM19 20H5V9H19V20ZM9 11H7V13H9V11ZM13 11H11V13H13V11ZM17 11H15V13H17V11Z" fill="#7C3AED" />
             </svg>
         </div>
     </div>
@@ -88,7 +133,9 @@ const CustomTimeInput = forwardRef(({ value, onClick, onChange, onFocus, onBlur,
 
 const DateTimeStep = ({
   eventData = {},
-  handleInputChange = () => { }
+  handleInputChange = () => { },
+  scheduleLocked = false,
+  lockMessage = '',
 }) => {
   const initialStartDate = parseDateTimeStrings(eventData.dateTime?.startDate, eventData.dateTime?.startTime);
   const initialEndDate = parseDateTimeStrings(eventData.dateTime?.endDate, eventData.dateTime?.endTime);
@@ -101,16 +148,53 @@ const DateTimeStep = ({
   const [endDateStr, setEndDateStr] = useState(formatDateForDisplay(initialEndDate));
   const [endTimeStr, setEndTimeStr] = useState(formatTimeForDisplay(initialEndDate));
   
-  // ✅ NEW: Using useRef for synchronous focus tracking
   const isStartDateFocused = useRef(false);
   const isStartTimeFocused = useRef(false);
   const isEndDateFocused = useRef(false);
   const isEndTimeFocused = useRef(false);
+  const lastSyncedDateTimeKey = useRef('');
+  const skipEndAlignmentRef = useRef(false);
+
+  const isAnyFieldFocused = () =>
+    isStartDateFocused.current ||
+    isStartTimeFocused.current ||
+    isEndDateFocused.current ||
+    isEndTimeFocused.current;
+
+  const syncPickerStateFromDateTime = (dateTime = {}) => {
+    skipEndAlignmentRef.current = true;
+    const parsedStart = parseDateTimeStrings(dateTime.startDate, dateTime.startTime);
+    const parsedEnd = parseDateTimeStrings(dateTime.endDate, dateTime.endTime);
+
+    setStartDate(parsedStart);
+    setEndDate(parsedEnd);
+    setStartDateStr(formatDateForDisplay(parsedStart));
+    setStartTimeStr(formatTimeForDisplay(parsedStart));
+    setEndDateStr(formatDateForDisplay(parsedEnd));
+    setEndTimeStr(formatTimeForDisplay(parsedEnd));
+  };
+
+  useEffect(() => {
+    const dateTime = eventData.dateTime || {};
+    if (!dateTime.startDate || !dateTime.startTime) return;
+    if (isAnyFieldFocused()) return;
+
+    const syncKey = dateTimePayloadKey(dateTime);
+    if (syncKey === lastSyncedDateTimeKey.current) return;
+
+    lastSyncedDateTimeKey.current = syncKey;
+    syncPickerStateFromDateTime(dateTime);
+  }, [
+    eventData.dateTime?.startDate,
+    eventData.dateTime?.startTime,
+    eventData.dateTime?.endDate,
+    eventData.dateTime?.endTime,
+    eventData.dateTime?.timezone,
+  ]);
 
   // --- START DATE & TIME HANDLERS ---
 
   const handleStartDateSelect = (date) => {
-    if (isStartDateFocused.current) return; // ✅ Guard clause now checks the ref
     let newStartDate = date ? new Date(date) : null;
     if (newStartDate && startDate) {
       newStartDate.setHours(startDate.getHours(), startDate.getMinutes());
@@ -121,11 +205,11 @@ const DateTimeStep = ({
   };
 
   const handleStartDateBlur = () => {
-    isStartDateFocused.current = false; // Update ref on blur
+    isStartDateFocused.current = false;
     const parts = startDateStr.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
     if (parts) {
       const [_, day, month, year] = parts;
-      const parsedDate = new Date(`${year}-${month}-${day}T00:00:00Z`); // Use UTC to prevent timezone offset issues
+      const parsedDate = new Date(`${year}-${month}-${day}T00:00:00Z`);
       if (parsedDate && !isNaN(parsedDate) && parsedDate.getUTCDate() === parseInt(day, 10)) {
         handleStartDateSelect(parsedDate);
         return;
@@ -135,7 +219,6 @@ const DateTimeStep = ({
   };
 
   const handleStartTimeSelect = (time) => {
-    if (isStartTimeFocused.current) return; // ✅ Guard clause now checks the ref
     if (!time || !startDate) return;
     const newStartDate = new Date(startDate);
     newStartDate.setHours(time.getHours(), time.getMinutes());
@@ -144,7 +227,7 @@ const DateTimeStep = ({
   };
 
   const handleStartTimeBlur = () => {
-    isStartTimeFocused.current = false; // Update ref on blur
+    isStartTimeFocused.current = false;
     if (!startDate) return;
     const parts = startTimeStr.match(/^(\d{1,2}):(\d{1,2})$/);
     if (parts) {
@@ -162,7 +245,6 @@ const DateTimeStep = ({
   // --- END DATE & TIME HANDLERS ---
   
   const handleEndDateSelect = (date) => {
-    if (isEndDateFocused.current) return; // ✅ Guard clause now checks the ref
     let newEndDate = date ? new Date(date) : null;
     if (newEndDate && endDate) {
       newEndDate.setHours(endDate.getHours(), endDate.getMinutes());
@@ -173,11 +255,11 @@ const DateTimeStep = ({
   };
 
   const handleEndDateBlur = () => {
-    isEndDateFocused.current = false; // Update ref on blur
+    isEndDateFocused.current = false;
     const parts = endDateStr.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
     if (parts) {
       const [_, day, month, year] = parts;
-      const parsedDate = new Date(`${year}-${month}-${day}T00:00:00Z`); // Use UTC to prevent timezone offset issues
+      const parsedDate = new Date(`${year}-${month}-${day}T00:00:00Z`);
       if (parsedDate && !isNaN(parsedDate) && parsedDate.getUTCDate() === parseInt(day, 10)) {
         handleEndDateSelect(parsedDate);
         return;
@@ -187,16 +269,22 @@ const DateTimeStep = ({
   };
 
   const handleEndTimeSelect = (time) => {
-    if (isEndTimeFocused.current) return; // ✅ Guard clause now checks the ref
     if (!time || !endDate) return;
     const newEndDate = new Date(endDate);
     newEndDate.setHours(time.getHours(), time.getMinutes());
+
+    // Enforce same-day end time to be after or equal to start time.
+    if (startDate && isSameCalendarDay(startDate, newEndDate) && newEndDate < startDate) {
+      setEndTimeStr(formatTimeForDisplay(endDate));
+      return;
+    }
+
     setEndDate(newEndDate);
     setEndTimeStr(formatTimeForDisplay(newEndDate));
   };
 
   const handleEndTimeBlur = () => {
-    isEndTimeFocused.current = false; // Update ref on blur
+    isEndTimeFocused.current = false;
     if (!endDate) return;
     const parts = endTimeStr.match(/^(\d{1,2}):(\d{1,2})$/);
     if (parts) {
@@ -214,24 +302,44 @@ const DateTimeStep = ({
   // --- Effects ---
 
   useEffect(() => {
-    const formattedDataForParent = {
-      startDate: formatDateForParent(startDate),
-      startTime: formatTimeForParent(startDate),
-      endDate: formatDateForParent(endDate),
-      endTime: formatTimeForParent(endDate),
-    };
-    handleInputChange(formattedDataForParent, 'dateTime');
-  }, [startDate, endDate, handleInputChange]);
+    const payload = buildDateTimePayload(
+      startDate,
+      endDate,
+      eventData.dateTime?.timezone
+    );
+    const current = eventData.dateTime || {};
+
+    if (dateTimePayloadEquals(payload, current)) return;
+
+    lastSyncedDateTimeKey.current = dateTimePayloadKey(payload);
+    handleInputChange(payload, 'dateTime');
+  }, [startDate, endDate, handleInputChange, eventData.dateTime?.timezone]);
 
   useEffect(() => {
+    if (skipEndAlignmentRef.current) {
+      skipEndAlignmentRef.current = false;
+      return;
+    }
+
     if (!startDate) {
       setEndDate(null);
       setEndDateStr('');
       setEndTimeStr('');
-    } else if (endDate && endDate < startDate) {
+    } else if (
+      endDate &&
+      toDayStart(endDate) &&
+      toDayStart(startDate) &&
+      toDayStart(endDate) < toDayStart(startDate)
+    ) {
       setEndDate(null);
       setEndDateStr('');
       setEndTimeStr('');
+    } else if (endDate && isSameCalendarDay(startDate, endDate) && endDate < startDate) {
+      // Keep same-day end time valid whenever start time changes.
+      const alignedEndDate = new Date(startDate);
+      setEndDate(alignedEndDate);
+      setEndDateStr(formatDateForDisplay(alignedEndDate));
+      setEndTimeStr(formatTimeForDisplay(alignedEndDate));
     }
   }, [startDate, endDate]);
 
@@ -241,25 +349,37 @@ const DateTimeStep = ({
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={styles.stepIcon}>
           <path d="M9 11H7V13H9V11ZM13 11H11V13H13V11ZM17 11H15V13H17V11ZM19 4H18V2H16V4H8V2H6V4H5C3.89 4 3.01 4.9 3.01 6L3 20C3 21.1 3.89 22 5 22H19C20.1 22 21 21.1 21 20V6C21 4.9 20.1 4 19 4ZM19 20H5V9H19V20Z" fill="#7C3AED" />
         </svg>
-        <h2 className={styles.stepTitle}>Date of the event</h2>
+        <div className={styles.stepTextContainer}>
+          <h2 className={styles.stepTitle}>Date Details</h2>
+          <p className={styles.stepDescription}>Set the date and time for your event.</p>
+        </div>
       </div>
 
       <div className={styles.formSection}>
+        {scheduleLocked && lockMessage ? (
+          <div className={styles.scheduleLockNotice} role="status">
+            {lockMessage}
+          </div>
+        ) : null}
+
         {/* Event Start Details */}
-        <div className={styles.formGroup}>
-          <label className={styles.formLabel}>Event Start Details</label>
-          <p className={styles.formDescription}>
-            The start date and time of your event that will appear on the event page
-          </p>
+        <div className={styles.dateBlock} data-node-id="486:8570">
+          <div className={styles.sectionHeader}>
+            <h3 className={styles.sectionTitle}>Event Start Details</h3>
+            <p className={styles.sectionDescription}>
+              The name shown to participants on your study page and calendar events.
+            </p>
+          </div>
           <div className={styles.formRow}>
             <div className={styles.formGroup}>
-              <label htmlFor="startDate" className={styles.formLabel}>Start Date</label>
+              <label className={styles.formLabel}>Start Date</label>
               <DatePicker
                 selected={startDate}
                 onChange={handleStartDateSelect}
+                disabled={scheduleLocked}
                 customInput={
                   <CustomDateInput
-                    placeholder="dd-mm-yyyy"
+
                     value={startDateStr}
                     onChange={(e) => setStartDateStr(e.target.value)}
                     onFocus={() => { isStartDateFocused.current = true; }}
@@ -272,20 +392,20 @@ const DateTimeStep = ({
               />
             </div>
             <div className={styles.formGroup}>
-              <label htmlFor="startTime" className={styles.formLabel}>Start Time</label>
+              <label className={styles.formLabel}>Start Time</label>
               <DatePicker
                 selected={startDate}
                 onChange={handleStartTimeSelect}
                 customInput={
                   <CustomTimeInput
-                    placeholder="HH:MM"
+
                     value={startTimeStr}
                     onChange={(e) => setStartTimeStr(e.target.value)}
                     onFocus={() => { isStartTimeFocused.current = true; }}
                     onBlur={handleStartTimeBlur}
                   />
                 }
-                disabled={!startDate}
+                disabled={scheduleLocked || !startDate}
                 showTimeSelect
                 showTimeSelectOnly
                 timeIntervals={15}
@@ -297,52 +417,60 @@ const DateTimeStep = ({
         </div>
 
         {/* Event End Details */}
-        <div className={styles.formGroup}>
-          <label className={styles.formLabel}>Event End Details</label>
-          <p className={styles.formDescription}>
-            The end date and time of your event that will appear on the event page
-          </p>
+        <div className={styles.dateBlock} data-node-id="486:8588">
+          <div className={styles.sectionHeader}>
+            <h3 className={styles.sectionTitle}>Event End Details</h3>
+            <p className={styles.sectionDescription}>
+              The name shown to participants on your study page and calendar events.
+            </p>
+          </div>
           <div className={styles.formRow}>
             <div className={styles.formGroup}>
-              <label htmlFor="endDate" className={styles.formLabel}>End Date</label>
+              <label className={styles.formLabel}>End Date</label>
               <DatePicker
                 selected={endDate}
                 onChange={handleEndDateSelect}
                 customInput={
                   <CustomDateInput
-                    placeholder="dd-mm-yyyy"
+
                     value={endDateStr}
                     onChange={(e) => setEndDateStr(e.target.value)}
                     onFocus={() => { isEndDateFocused.current = true; }}
                     onBlur={handleEndDateBlur}
                   />
                 }
-                disabled={!startDate}
+                disabled={scheduleLocked || !startDate}
                 minDate={startDate || new Date()}
                 dateFormat="dd-MM-yyyy"
                 showPopperArrow={false}
               />
             </div>
             <div className={styles.formGroup}>
-              <label htmlFor="endTime" className={styles.formLabel}>End Time</label>
+              <label className={styles.formLabel}>End Time</label>
               <DatePicker
                 selected={endDate}
                 onChange={handleEndTimeSelect}
                 customInput={
                   <CustomTimeInput
-                    placeholder="HH:MM"
+
                     value={endTimeStr}
                     onChange={(e) => setEndTimeStr(e.target.value)}
                     onFocus={() => { isEndTimeFocused.current = true; }}
                     onBlur={handleEndTimeBlur}
                   />
                 }
-                disabled={!endDate}
+                disabled={scheduleLocked || !endDate}
                 showTimeSelect
                 showTimeSelectOnly
                 timeIntervals={15}
                 timeFormat="HH:mm"
                 dateFormat="HH:mm"
+                minTime={
+                  startDate && endDate && isSameCalendarDay(startDate, endDate)
+                    ? startDate
+                    : new Date(new Date().setHours(0, 0, 0, 0))
+                }
+                maxTime={new Date(new Date().setHours(23, 59, 59, 999))}
               />
             </div>
           </div>
@@ -353,7 +481,7 @@ const DateTimeStep = ({
              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 20C7.59 20 4 16.41 4 12C4 7.59 7.59 4 12 4C16.41 4 20 7.59 20 12C20 16.41 16.41 20 12 20ZM11 15H13V17H11V15ZM11 7H13V13H11V7Z" fill="#666666" />
             </svg>
-            All times are in your local timezone: {Intl.DateTimeFormat().resolvedOptions().timeZone}
+            All times are in event timezone: {resolveFormEventTimezone(eventData.dateTime?.timezone)}
           </p>
         </div>
       </div>
@@ -363,7 +491,9 @@ const DateTimeStep = ({
 
 DateTimeStep.propTypes = {
   eventData: PropTypes.object,
-  handleInputChange: PropTypes.func
+  handleInputChange: PropTypes.func,
+  scheduleLocked: PropTypes.bool,
+  lockMessage: PropTypes.string,
 };
 
 export default DateTimeStep;
