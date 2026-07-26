@@ -1,26 +1,31 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import OrganizationList from "./OrganizationList";
 import EventList from "./EventList";
-import EventDetails from "./EventDetails";
 
+/**
+ * Admin dashboard drill-down:
+ * Organisations → Events → Event manage (view-only) pages.
+ */
 export default function Dashboard() {
+  const location = useLocation();
   const [selectedOrg, setSelectedOrg] = useState(null);
-  const [selectedEvent, setSelectedEvent] = useState(null);
 
-  if (selectedEvent) {
-    return (
-      <EventDetails
-        eventId={selectedEvent}
-        onBack={() => setSelectedEvent(null)}
-      />
-    );
-  }
+  useEffect(() => {
+    const fromManage = location.state?.selectedOrgId;
+    if (fromManage != null && fromManage !== "") {
+      setSelectedOrg({
+        id: fromManage,
+        name: location.state?.selectedOrgName || null,
+      });
+    }
+  }, [location.state]);
 
   if (selectedOrg) {
     return (
       <EventList
-        orgId={selectedOrg}
-        onSelectEvent={setSelectedEvent}
+        orgId={selectedOrg.id}
+        orgName={selectedOrg.name}
         onBack={() => setSelectedOrg(null)}
       />
     );

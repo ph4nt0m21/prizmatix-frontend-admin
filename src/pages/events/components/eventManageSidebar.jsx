@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useId, useState, useEffect, useRef } from "react";
 import PropTypes from "prop-types";
+import { createPortal } from "react-dom";
 import styles from "./eventManageSidebar.module.scss";
 
 /**
@@ -12,6 +13,7 @@ import styles from "./eventManageSidebar.module.scss";
  * @param {Function} props.navigateToSection - Function to navigate to a specific section.
  * @param {Function} props.navigateToEventEditPage - Function to navigate to the event edit page.
  * @param {string} props.eventId - The ID of the event being managed.
+ * @param {Function} props.onDeleteClick - Opens delete confirmation for the current event.
  * @param {boolean} props.isMobileSidebarOpen - Controls if the sidebar is open on mobile.
  * @param {Function} props.toggleMobileSidebar - Function to toggle mobile sidebar visibility.
  * @returns {JSX.Element} EventManageSidebar component
@@ -21,10 +23,68 @@ const EventManageSidebar = ({
   sectionStatus,
   navigateToSection,
   navigateToEventEditPage,
+  navigateToPublishStep,
+  canPublish = false,
+  publishBlockers = [],
+  isPublished = false,
   eventId,
+  onDeleteClick,
+  onDuplicateClick,
+  isDuplicating = false,
   isMobileSidebarOpen,
-  toggleMobileSidebar
+  toggleMobileSidebar,
+  viewOnly = false,
 }) => {
+  const publishRequirementsTooltipId = useId();
+  const publishHintWrapRef = useRef(null);
+  const publishRequirementsPanelRef = useRef(null);
+  const [publishHintHover, setPublishHintHover] = useState(false);
+  const [publishHintPinned, setPublishHintPinned] = useState(false);
+  const [isMobileViewport, setIsMobileViewport] = useState(() =>
+    typeof window !== "undefined" &&
+    window.matchMedia("(max-width: 768px)").matches
+  );
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 768px)");
+    const apply = () => setIsMobileViewport(mq.matches);
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
+
+  const showPublishRequirements =
+    !canPublish &&
+    publishBlockers.length > 0 &&
+    (publishHintHover || publishHintPinned);
+
+  useEffect(() => {
+    if (canPublish) {
+      setPublishHintPinned(false);
+      setPublishHintHover(false);
+    }
+  }, [canPublish]);
+
+  useEffect(() => {
+    if (!showPublishRequirements) return undefined;
+
+    const handlePointerDown = (event) => {
+      const target = event.target;
+      if (
+        publishHintWrapRef.current?.contains(target) ||
+        publishRequirementsPanelRef.current?.contains(target)
+      ) {
+        return;
+      }
+      setPublishHintPinned(false);
+      setPublishHintHover(false);
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown, true);
+    return () =>
+      document.removeEventListener("pointerdown", handlePointerDown, true);
+  }, [showPublishRequirements]);
+
   const sections = [
     // Manage Event section
     {
@@ -53,25 +113,24 @@ const EventManageSidebar = ({
       ),
       group: "manage",
     },
-    {
-      key: "payout",
-      label: "Payout",
-      icon: (
-<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none">
-  <path fillRule="evenodd" clipRule="evenodd" d="M10.0007 11.5916C10.9211 11.5916 11.6673 10.8454 11.6673 9.92497C11.6673 9.00449 10.9211 8.2583 10.0007 8.2583C9.08018 8.2583 8.33398 9.00449 8.33398 9.92497C8.33398 10.8454 9.08018 11.5916 10.0007 11.5916Z" stroke="#383C51" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-  <path fillRule="evenodd" clipRule="evenodd" d="M16.5033 15.1777V15.1777C14.4158 14.7602 12.2625 14.8119 10.1975 15.3277L10 15.3777C7.805 15.9261 5.51583 15.9811 3.2975 15.5369L3.17 15.5111C2.78 15.4336 2.5 15.0911 2.5 14.6944V5.66191C2.5 5.13608 2.98083 4.74191 3.49667 4.84441V4.84441C5.58417 5.26191 7.7375 5.21024 9.8025 4.69441L10.1967 4.59608C12.2617 4.08024 14.4158 4.02858 16.5025 4.44608L16.8292 4.51108C17.22 4.58941 17.5 4.93108 17.5 5.32858V14.3611C17.5 14.8869 17.0192 15.2811 16.5033 15.1777V15.1777Z" stroke="#383C51" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-  <path d="M15.0007 6.73007C14.4457 6.67924 13.8898 6.65674 13.334 6.67091" stroke="#383C51" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-  <path d="M5 13.2743C5.555 13.3252 6.11083 13.3468 6.66667 13.3335" stroke="#383C51" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-</svg>
-      ),
-      group: "manage",
-    },
-    // { // REMOVED PROMOTIONS SECTION
-    //   key: "promotions",
-    //   label: "Promotions",
-    //   icon: ( ... ),
-    //   group: "manage",
-    // },
+    // Payout is org-console only; admin monitoring hides it (viewOnly).
+    ...(!viewOnly
+      ? [
+          {
+            key: "payout",
+            label: "Payout",
+            icon: (
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <path fillRule="evenodd" clipRule="evenodd" d="M10.0007 11.5916C10.9211 11.5916 11.6673 10.8454 11.6673 9.92497C11.6673 9.00449 10.9211 8.2583 10.0007 8.2583C9.08018 8.2583 8.33398 9.00449 8.33398 9.92497C8.33398 10.8454 9.08018 11.5916 10.0007 11.5916Z" stroke="#383C51" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <path fillRule="evenodd" clipRule="evenodd" d="M16.5033 15.1777V15.1777C14.4158 14.7602 12.2625 14.8119 10.1975 15.3277L10 15.3777C7.805 15.9261 5.51583 15.9811 3.2975 15.5369L3.17 15.5111C2.78 15.4336 2.5 15.0911 2.5 14.6944V5.66191C2.5 5.13608 2.98083 4.74191 3.49667 4.84441V4.84441C5.58417 5.26191 7.7375 5.21024 9.8025 4.69441L10.1967 4.59608C12.2617 4.08024 14.4158 4.02858 16.5025 4.44608L16.8292 4.51108C17.22 4.58941 17.5 4.93108 17.5 5.32858V14.3611C17.5 14.8869 17.0192 15.2811 16.5033 15.1777V15.1777Z" stroke="#383C51" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M15.0007 6.73007C14.4457 6.67924 13.8898 6.65674 13.334 6.67091" stroke="#383C51" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M5 13.2743C5.555 13.3252 6.11083 13.3468 6.66667 13.3335" stroke="#383C51" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            ),
+            group: "manage",
+          },
+        ]
+      : []),
 
     // Edit Event Pages - these are distinct pages
     {
@@ -149,10 +208,10 @@ const EventManageSidebar = ({
       return;
     }
 
-    if (section.group === "manage") {
-      navigateToSection(section.key);
-    } else if (section.key === "eventPage") {
+    if (section.key === "eventPage" && !viewOnly && navigateToEventEditPage) {
       navigateToEventEditPage();
+    } else {
+      navigateToSection(section.key);
     }
 
     if (window.innerWidth <= 768 && isMobileSidebarOpen) {
@@ -160,12 +219,25 @@ const EventManageSidebar = ({
     }
   };
 
+  const publishRequirementsBody = (
+    <>
+      <span className={styles.publishRequirementsTitle}>
+        Before you can publish
+      </span>
+      <ul className={styles.publishRequirementsList}>
+        {publishBlockers.map((line, idx) => (
+          <li key={idx}>{line}</li>
+        ))}
+      </ul>
+    </>
+  );
+
   return (
     <div className={`${styles.sidebar} ${isMobileSidebarOpen ? styles.open : ''}`}>
-      <div className={styles.sidebarHeader}>
+      {/* <div className={styles.sidebarHeader}>
         <h2 className={styles.sidebarTitle}>Manage Event</h2>
         <p className={styles.sidebarSubtitle}>Event management options</p>
-      </div>
+      </div> */}
 
       <div className={styles.sectionsList}>
         {/* Manage Event Sections */}
@@ -189,11 +261,11 @@ const EventManageSidebar = ({
 
         {/* Edit Event Pages */}
         <div className={styles.sectionGroup}>
-          <h3 className={styles.groupTitle}>Edit Event</h3>
+          <h3 className={styles.groupTitle}>{viewOnly ? "Event details" : "Edit Event"}</h3>
           {sections.filter(s => s.key === 'eventPage').map((section) => (
             <div
               key={section.key}
-              className={styles.sectionItem}
+              className={`${styles.sectionItem} ${currentSection === 'eventPage' ? styles.active : ''}`}
               onClick={() => handleSectionClick(section.key)}
             >
               <div className={styles.sectionIconContainer}>
@@ -233,9 +305,100 @@ const EventManageSidebar = ({
         </div>
       </div>
 
-      {/* Duplicate and Delete Event Buttons */}
-      <div className={styles.eventActions}>
-        <button className={styles.duplicateButton}>
+      {/* Publish draft — hidden in view-only admin monitoring. */}
+      {!viewOnly && !isPublished && (
+      <div className={styles.publishActionWrap}>
+        <div
+          ref={publishHintWrapRef}
+          className={styles.publishButtonWithHint}
+          onMouseEnter={() => setPublishHintHover(true)}
+          onMouseLeave={() => setPublishHintHover(false)}
+        >
+          <button
+            type="button"
+            className={styles.publishDraftButton}
+            aria-disabled={!canPublish}
+            aria-expanded={showPublishRequirements}
+            aria-describedby={
+              showPublishRequirements ? publishRequirementsTooltipId : undefined
+            }
+            title={
+              canPublish
+                ? "Open publish preview and publish your event"
+                : publishBlockers.length > 0
+                  ? "Hover or tap to see what is required before publishing"
+                  : "Complete requirements to publish"
+            }
+            onClick={() => {
+              if (canPublish && navigateToPublishStep) {
+                navigateToPublishStep();
+                return;
+              }
+              if (!canPublish && publishBlockers.length > 0) {
+                setPublishHintPinned((prev) => !prev);
+              }
+            }}
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              aria-hidden
+            >
+              <path
+                d="M5 16h14v2H5v-2zm5.5-14H14v6h5l-7 7-7-7h5V2z"
+                fill="currentColor"
+              />
+            </svg>
+            Publish event
+          </button>
+          {showPublishRequirements &&
+            (isMobileViewport && typeof document !== "undefined"
+              ? createPortal(
+                  <div
+                    ref={publishRequirementsPanelRef}
+                    id={publishRequirementsTooltipId}
+                    className={`${styles.publishRequirementsPanel} ${styles.publishRequirementsPanelMobileFloat}`}
+                    role="region"
+                    aria-label="Requirements before you can publish"
+                  >
+                    {publishRequirementsBody}
+                  </div>,
+                  document.body
+                )
+              : !isMobileViewport ? (
+                  <div
+                    ref={publishRequirementsPanelRef}
+                    id={publishRequirementsTooltipId}
+                    className={styles.publishRequirementsPanel}
+                    role="region"
+                    aria-label="Requirements before you can publish"
+                  >
+                    {publishRequirementsBody}
+                  </div>
+                ) : null)}
+        </div>
+      </div>
+      )}
+
+      {!viewOnly && (
+      <div
+        className={`${styles.eventActions} ${isPublished ? styles.eventActionsNoPublishAbove : ''}`}
+      >
+        <button
+          type="button"
+          className={styles.duplicateButton}
+          onClick={() => {
+            if (!eventId) {
+              alert("Event ID is required to duplicate this event.");
+              return;
+            }
+            onDuplicateClick?.();
+          }}
+          disabled={isDuplicating}
+        >
           <svg
             width="16"
             height="16"
@@ -250,7 +413,17 @@ const EventManageSidebar = ({
           </svg>
           Duplicate Event
         </button>
-        <button className={styles.deleteButton}>
+        <button
+          type="button"
+          className={styles.deleteButton}
+          onClick={() => {
+            if (!eventId) {
+              alert("Event ID is required to delete this event.");
+              return;
+            }
+            onDeleteClick?.();
+          }}
+        >
           <svg
             width="16"
             height="16"
@@ -266,6 +439,7 @@ const EventManageSidebar = ({
           Delete Event
         </button>
       </div>
+      )}
     </div>
   );
 };
@@ -274,10 +448,18 @@ EventManageSidebar.propTypes = {
   currentSection: PropTypes.string.isRequired,
   sectionStatus: PropTypes.object.isRequired,
   navigateToSection: PropTypes.func.isRequired,
-  navigateToEventEditPage: PropTypes.func.isRequired,
+  navigateToEventEditPage: PropTypes.func,
+  navigateToPublishStep: PropTypes.func,
+  canPublish: PropTypes.bool,
+  publishBlockers: PropTypes.arrayOf(PropTypes.string),
+  isPublished: PropTypes.bool,
   eventId: PropTypes.string,
+  onDeleteClick: PropTypes.func,
+  onDuplicateClick: PropTypes.func,
+  isDuplicating: PropTypes.bool,
   isMobileSidebarOpen: PropTypes.bool.isRequired,
   toggleMobileSidebar: PropTypes.func.isRequired,
+  viewOnly: PropTypes.bool,
 };
 
 export default EventManageSidebar;

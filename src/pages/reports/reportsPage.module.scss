@@ -122,3 +122,108 @@
   opacity: 0.4;
   cursor: not-allowed;
 }
+@media (max-width: 768px) {
+  .pageWrapper {
+    padding: 16px 12px 28px;
+  }
+
+  .pageTitle {
+    font-size: 20px;
+    margin-bottom: 16px;
+  }
+
+  .tabs {
+    gap: 8px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap;
+    padding-bottom: 2px;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+    scrollbar-width: none;
+  }
+
+  .tab {
+    flex-shrink: 0;
+    white-space: nowrap;
+    min-height: 40px;
+    padding: 8px 14px;
+    font-size: 13px;
+  }
+
+  .tableCard {
+    padding: 12px;
+    overflow: visible;
+  }
+
+  .table {
+    min-width: 0;
+  }
+
+  .table thead {
+    display: none;
+  }
+
+  .table tbody tr {
+    display: block;
+    margin: 0 0 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    background: #fff;
+    padding: 4px 0;
+  }
+
+  .table tbody td {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 12px;
+    border-bottom: 1px solid #f3f4f6;
+    white-space: normal;
+    word-break: break-word;
+  }
+
+  .table tbody td:last-child {
+    border-bottom: none;
+  }
+
+  .table tbody td::before {
+    content: attr(data-label);
+    flex-shrink: 0;
+    max-width: 40%;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: #6b7280;
+  }
+
+  .actionCell {
+    position: static;
+  }
+
+  .dropdownMenu {
+    position: static;
+    margin-top: 8px;
+    width: 100%;
+    box-shadow: none;
+    border: 1px solid #eee;
+  }
+
+  .pagination {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+  }
+
+  .pagination span {
+    min-height: 36px;
+    min-width: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+}

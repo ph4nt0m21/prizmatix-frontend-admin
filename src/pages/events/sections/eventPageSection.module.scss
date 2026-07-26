@@ -1,82 +1,91 @@
-@import '../../../styles/variables';
-@import '../../../styles/mixins';
-
-.sectionContainer {
-  width: 100%;
-}
-
-.sectionHeader {
-  margin-bottom: 24px;
-}
-
-.sectionTitle {
-  font-size: 20px;
-  font-weight: 600;
-  color: #111827;
-  margin: 0 0 8px;
-}
-
-.sectionDescription {
-  font-size: 14px;
-  color: #6B7280;
-  margin: 0;
-}
-
-.contentCard {
-  background: #FFFFFF;
-  border-radius: 8px;
-  box-shadow: 0px 1px 3px rgba(0, 0, 0, 0.05);
-  padding: 24px;
-}
-
-// Placeholder styles
-.placeholder {
+.wrapper {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 64px 24px;
-  text-align: center;
-  border: 1px dashed #D1D5DB;
-  border-radius: 8px;
-  background: #F9FAFB;
+  gap: 12px;
+  min-height: 100%;
 }
 
-.placeholderIcon {
-  margin-bottom: 16px;
+.banner {
+  padding: 16px 20px 0;
 }
 
-.placeholderTitle {
-  font-size: 18px;
-  font-weight: 600;
+.title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
   color: #111827;
-  margin: 0 0 8px;
 }
 
-.placeholderText {
-  font-size: 14px;
-  color: #6B7280;
-  margin: 0 0 24px;
-  max-width: 400px;
+.subtitle {
+  margin: 6px 0 0;
+  font-size: 0.9rem;
+  color: #6b7280;
 }
 
-.placeholderButton {
-  padding: 8px 16px;
-  background: #7C3AED;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  font-size: 14px;
+.stepTabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 20px;
+}
+
+.stepTab {
+  appearance: none;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  color: #374151;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
-  transition: background 0.2s;
-  
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+
   &:hover {
-    background: #6D28D9;
+    border-color: #d1d5db;
+    background: #f9fafb;
   }
-  
-  &:disabled {
-    background: #A78BFA;
-    cursor: not-allowed;
+}
+
+.stepTabActive {
+  border-color: #383c51;
+  background: #383c51;
+  color: #fff;
+
+  &:hover {
+    border-color: #383c51;
+    background: #383c51;
+    color: #fff;
+  }
+}
+
+.readonlyFieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+
+.stepContent {
+  padding: 0 12px 24px;
+  pointer-events: none;
+  user-select: text;
+}
+
+@media (max-width: 768px) {
+  .stepTabs {
+    padding: 0 12px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .stepTab {
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .stepContent {
+    padding: 0 4px 24px;
   }
 }

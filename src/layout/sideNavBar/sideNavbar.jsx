@@ -131,8 +131,8 @@ const SideNavBar = ({ isMobileSidebarOpen, toggleMobileSidebar }) => {
   ...(['ORGANIZER', 'ADMINISTRATOR'].includes(userRole)
     ? [
         { id: 'dashboard', path: '/', icon: OverviewIcon, label: 'Dashboard' },
-        { id: 'users', path: '/users', icon: OverviewIcon, label: 'Users' },
-        { id: 'revenue', path: '/revenue', icon: OverviewIcon, label: 'Revenue' }, // NEW
+        { id: 'users', path: '/users', icon: CampaignsIcon, label: 'Users' },
+        { id: 'revenue', path: '/revenue', icon: ReportsIcon, label: 'Revenue' },
         // { id: 'reports', path: '/reports', icon: OverviewIcon, label: 'Reports' }
       ]
     : [])

@@ -172,7 +172,9 @@ export default function UsersPage() {
                 {users.map((user, rowIndex) => (
                   <tr key={rowIndex}>
                     {columns.map((col) => (
-                      <td key={col}>{renderCellValue(user[col])}</td>
+                      <td key={col} data-label={col}>
+                        {renderCellValue(user[col])}
+                      </td>
                     ))}
                   </tr>
                 ))}

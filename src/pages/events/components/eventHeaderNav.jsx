@@ -3,14 +3,24 @@ import PropTypes from 'prop-types';
 import { Link } from 'react-router-dom';
 import styles from './eventHeaderNav.module.scss';
 import GenerateScannerIdModal from './generateScannerIdModal';
-
+import { copyPublicEventLink } from '../../../utils/eventLinkUtil';
+import {  useNavigate } from 'react-router-dom';
 // --- SVG Icons ---
 const ArrowIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M9 18l6-6-6-6"/>
   </svg>
 );
-
+const BackIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+       xmlns="http://www.w3.org/2000/svg"
+       stroke="currentColor" strokeWidth="2"
+       strokeLinecap="round" strokeLinejoin="round">
+         <line x1="5" y1="12" x2="19" y2="12" />
+    <polyline points="11 6 5 12 11 18" />
+    {/* <path d="M15 18L9 12L15 6" /> reversed path of ArrowIcon */}
+  </svg>
+);
 const ScannerIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M3 7V5a2 2 0 0 1 2-2h2" />
@@ -28,9 +38,9 @@ const LinkIcon = () => (
   </svg>
 );
 
-const GearIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M12 20V18M12 6V4M20 12H18M6 12H4M18.36 18.36L17 17M7.05 7.05L5.64 5.64M18.36 5.64L17 7.05M7.05 17L5.64 18.36M12 16a4 4 0 100-8 4 4 0 000 8z" />
+const ChevronDownIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="6 9 12 15 18 9" />
   </svg>
 );
 
@@ -38,15 +48,20 @@ const GearIcon = () => (
 const EventHeaderNav = ({
   eventName,
   eventId,
+  eventSlug,
   isDraft,
+  eventStatus,
   toggleMobileSidebar,
-  children, // Accept children prop
+  children,
+  showActions = false,
+  onBack,
+  backLabel = 'Back',
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const [isActionMenuOpen, setIsActionMenuOpen] = useState(false);
   const actionMenuRef = useRef(null);
-
+const navigate = useNavigate();
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (actionMenuRef.current && !actionMenuRef.current.contains(event.target)) {
@@ -60,20 +75,26 @@ const EventHeaderNav = ({
   }, []);
 
   const handleCopyLink = () => {
-    const eventLink = `https://www.prizmatix.nz/events/${eventId}`;
-    navigator.clipboard.writeText(eventLink).then(() => {
-      setIsCopied(true);
-      setTimeout(() => setIsCopied(false), 2500);
-      setIsActionMenuOpen(false);
-    }).catch(err => {
-      console.error('Failed to copy text: ', err);
-    });
+    if (!eventSlug && !eventId) return;
+    copyPublicEventLink({ slug: eventSlug, id: eventId })
+      .then((copied) => {
+        if (!copied) return;
+        setIsCopied(true);
+        setTimeout(() => setIsCopied(false), 2500);
+        setIsActionMenuOpen(false);
+      })
+      .catch((err) => {
+        console.error('Failed to copy text: ', err);
+      });
   };
 
   const handleOpenScannerModal = () => {
     setIsModalOpen(true);
     setIsActionMenuOpen(false);
   };
+
+  const hasManageTarget =
+    eventId != null && eventId !== '' && String(eventId) !== 'undefined';
 
   return (
     <>
@@ -88,31 +109,55 @@ const EventHeaderNav = ({
               </svg>
             </button>
             <div className={styles.breadcrumbContainer}>
-              <div className={styles.breadcrumb}>
-                <Link to="/events" className={styles.breadcrumbLink}>Events</Link>
-                <span className={styles.breadcrumbSeparator}><ArrowIcon /></span>
-                <Link to={`/events/manage/${eventId}/overview`} className={styles.breadcrumbLink}>{eventName}</Link>
-                {isDraft && <span className={styles.breadcrumbDraft}>Live</span>}
-              </div>
-            </div>
-            <div className={styles.actionButtonsContainer} ref={actionMenuRef}>
-              <button className={styles.mobileActionsButton} onClick={() => setIsActionMenuOpen(!isActionMenuOpen)}>
-                <GearIcon />
+                    <button
+                type="button"
+                className={styles.backButton}
+                onClick={() => (onBack ? onBack() : navigate(-1))}
+                aria-label={backLabel}
+              >
+                <BackIcon />
               </button>
-              <div className={`${styles.actionButtons} ${isActionMenuOpen ? styles.active : ''}`}>
-                <button className={styles.generateButton} onClick={handleOpenScannerModal}>
-                  <ScannerIcon />
-                  <span>Generate Scanner ID</span>
+              <div className={styles.breadcrumb}>
+                <button type="button" className={styles.breadcrumbLink} onClick={() => (onBack ? onBack() : navigate('/'))}>
+                  {backLabel}
                 </button>
-                <button
-                  className={styles.copyLinkButton}
-                  onClick={handleCopyLink}
-                  data-copied-tooltip={isCopied ? 'Copied!' : 'Copy event link'}
-                >
-                  <LinkIcon />
-                </button>
+                <span className={styles.breadcrumbSeparator}><ArrowIcon /></span>
+                {hasManageTarget ? (
+                  <Link to={`/events/manage/${eventId}/overview`} className={styles.breadcrumbLink}>{eventName}</Link>
+                ) : (
+                  <span className={styles.breadcrumbCurrent}>{eventName}</span>
+                )}
+                <span className={styles.breadcrumbDraft}>
+                  {isDraft ? 'DRAFT' : eventStatus}
+                </span>
               </div>
             </div>
+            {showActions && (
+              <div className={styles.actionButtonsContainer} ref={actionMenuRef}>
+                <button
+                  className={styles.mobileActionsButton}
+                  onClick={() => setIsActionMenuOpen(!isActionMenuOpen)}
+                  aria-expanded={isActionMenuOpen}
+                  aria-label="Toggle actions menu"
+                >
+                  <span>More</span>
+                  <ChevronDownIcon />
+                </button>
+                <div className={`${styles.actionButtons} ${isActionMenuOpen ? styles.active : ''}`}>
+                  <button className={styles.generateButton} onClick={handleOpenScannerModal}>
+                    <ScannerIcon />
+                    <span>Generate Scanner ID</span>
+                  </button>
+                  <button
+                    className={styles.copyLinkButton}
+                    onClick={handleCopyLink}
+                    data-copied-tooltip={isCopied ? 'Copied!' : 'Copy event link'}
+                  >
+                    <LinkIcon />
+                  </button>
+                </div>
+              </div>
+            )}
           </>
         )}
       </nav>
@@ -132,17 +177,25 @@ const EventHeaderNav = ({
 EventHeaderNav.propTypes = {
   eventName: PropTypes.string,
   eventId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  eventSlug: PropTypes.string,
   isDraft: PropTypes.bool,
+  eventStatus: PropTypes.oneOf(['LIVE', 'PAST', 'DRAFT']),
   toggleMobileSidebar: PropTypes.func,
   children: PropTypes.node, // Added children to prop types
+  showActions: PropTypes.bool,
+  onBack: PropTypes.func,
+  backLabel: PropTypes.string,
 };
 
 EventHeaderNav.defaultProps = {
   eventName: '',
   eventId: null,
+  eventSlug: null,
   isDraft: true,
+  eventStatus: 'DRAFT',
   toggleMobileSidebar: () => {},
   children: null,
+  showActions: false, // Default to false
 };
 
 export default EventHeaderNav;
