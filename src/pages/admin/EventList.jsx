@@ -15,7 +15,7 @@ import styles from "./listPage.module.scss";
 
 const FILTER_OPTIONS = ["All Events", "Live Events", "Drafts", "Paused", "Archive", "Deleted"];
 
-export default function EventList({ orgId, orgName, onBack }) {
+export default function EventList({ orgId, orgName, orgListPage, onBack }) {
   const navigate = useNavigate();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -149,9 +149,10 @@ export default function EventList({ orgId, orgName, onBack }) {
 
   const openEventManage = (event) => {
     if (event?.pendingDeletionAt) return;
-    navigate(
-      `/events/manage/${event.id}/overview?orgId=${encodeURIComponent(orgId)}`
-    );
+    const qs = new URLSearchParams({ orgId: String(orgId) });
+    if (orgName) qs.set("orgName", orgName);
+    if (typeof orgListPage === "number") qs.set("orgListPage", String(orgListPage));
+    navigate(`/events/manage/${event.id}/overview?${qs.toString()}`);
   };
 
   const filterCount = (filter) => {

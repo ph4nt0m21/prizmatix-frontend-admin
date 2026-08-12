@@ -828,6 +828,31 @@
   }
 }
 
+.headerTopRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.sortSelector {
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #E5E7EB;
+  background: #FFFFFF;
+  color: #383c51;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.orgLiveBadge {
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
 .pageSubtitle {
   margin: 4px 0 0;
   font-family: 'Inter', sans-serif;

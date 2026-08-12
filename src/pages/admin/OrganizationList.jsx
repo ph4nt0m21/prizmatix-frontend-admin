@@ -5,28 +5,45 @@ import styles from "./listPage.module.scss";
 
 const PAGE_SIZE = 10;
 
-export default function OrganizationList({ onSelectOrg }) {
+const SORT_OPTIONS = [
+  { value: "liveFirst", label: "Live events first" },
+  { value: "newest", label: "Newest" },
+  { value: "name", label: "Name (A–Z)" },
+];
+
+const buildPayload = (sortMode, page) => {
+  switch (sortMode) {
+    case "name":
+      return { page, size: PAGE_SIZE, sortBy: "name", sortDirection: "asc" };
+    case "newest":
+      return { page, size: PAGE_SIZE, sortBy: "id", sortDirection: "desc" };
+    case "liveFirst":
+    default:
+      return { page, size: PAGE_SIZE, liveEventsFirst: true };
+  }
+};
+
+export default function OrganizationList({ onSelectOrg, page = 0, onPageChange }) {
   const [organizations, setOrganizations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
+  const [sortMode, setSortMode] = useState("liveFirst");
 
   useEffect(() => {
     const fetchOrganizations = async () => {
       setLoading(true);
       setError(null);
       try {
-        const payload = {
-          page,
-          size: PAGE_SIZE,
-          sortBy: "id",
-          sortDirection: "id",
-        };
+        const payload = buildPayload(sortMode, page);
         const response = await GetAllOrganizationsAPI(payload);
         const apiData = response?.data?.data;
+        const fetchedTotalPages = apiData?.totalPages ?? 1;
         setOrganizations(apiData?.content ?? []);
-        setTotalPages(apiData?.totalPages ?? 1);
+        setTotalPages(fetchedTotalPages);
+        if (page > 0 && page >= fetchedTotalPages) {
+          onPageChange?.(0);
+        }
       } catch (fetchError) {
         console.error("Failed to fetch organizations:", fetchError);
         setOrganizations([]);
@@ -37,7 +54,12 @@ export default function OrganizationList({ onSelectOrg }) {
     };
 
     fetchOrganizations();
-  }, [page]);
+  }, [page, sortMode]);
+
+  const handleSortChange = (e) => {
+    setSortMode(e.target.value);
+    onPageChange?.(0);
+  };
 
   const getInitials = (org) => {
     const name = String(org?.name || "").trim();
@@ -67,8 +89,21 @@ export default function OrganizationList({ onSelectOrg }) {
   return (
     <div className={styles.adminListRoot}>
       <div className={styles.adminListHeader}>
-        <div className={styles.pageTitle}>
-          <h1>Organisations</h1>
+        <div className={styles.headerTopRow}>
+          <div className={styles.pageTitle}>
+            <h1>Organisations</h1>
+          </div>
+          <select
+            className={styles.sortSelector}
+            value={sortMode}
+            onChange={handleSortChange}
+          >
+            {SORT_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
@@ -98,7 +133,14 @@ export default function OrganizationList({ onSelectOrg }) {
                         <div className={styles.eventInfoCell}>
                           <div className={styles.orgAvatar}>{getInitials(org)}</div>
                           <div className={styles.eventDetails}>
-                            <h3 className={styles.eventName}>{org.name}</h3>
+                            <h3 className={styles.eventName}>
+                              {org.name}
+                              {org.hasLiveEvent && (
+                                <span className={`${styles.statusBadge} ${styles.liveBadge} ${styles.orgLiveBadge}`}>
+                                  LIVE
+                                </span>
+                              )}
+                            </h3>
                             <p className={styles.eventLocation}>ID #{org.id}</p>
                           </div>
                         </div>
@@ -147,7 +189,14 @@ export default function OrganizationList({ onSelectOrg }) {
                   <div className={styles.cardHeader}>
                     <div className={styles.orgAvatar}>{getInitials(org)}</div>
                     <div className={styles.cardInfo}>
-                      <h3 className={styles.cardEventName}>{org.name}</h3>
+                      <h3 className={styles.cardEventName}>
+                        {org.name}
+                        {org.hasLiveEvent && (
+                          <span className={`${styles.statusBadge} ${styles.liveBadge} ${styles.orgLiveBadge}`}>
+                            LIVE
+                          </span>
+                        )}
+                      </h3>
                       <p className={styles.cardEventLocation}>
                         {org.email || "No email"}
                       </p>
@@ -179,7 +228,7 @@ export default function OrganizationList({ onSelectOrg }) {
             <button
               type="button"
               disabled={page === 0 || loading}
-              onClick={() => setPage((p) => p - 1)}
+              onClick={() => onPageChange?.(page - 1)}
             >
               Previous
             </button>
@@ -189,7 +238,7 @@ export default function OrganizationList({ onSelectOrg }) {
             <button
               type="button"
               disabled={page + 1 >= totalPages || loading}
-              onClick={() => setPage((p) => p + 1)}
+              onClick={() => onPageChange?.(page + 1)}
             >
               Next
             </button>
