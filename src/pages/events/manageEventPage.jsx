@@ -26,6 +26,16 @@ const EventManagePage = () => {
   const { eventId, section } = useParams();
   const [searchParams] = useSearchParams();
   const orgId = searchParams.get("orgId");
+  const orgName = searchParams.get("orgName");
+  const orgListPage = searchParams.get("orgListPage");
+
+  const buildOrgQueryString = useCallback(() => {
+    if (!orgId) return "";
+    const qs = new URLSearchParams({ orgId });
+    if (orgName) qs.set("orgName", orgName);
+    if (orgListPage != null) qs.set("orgListPage", orgListPage);
+    return `?${qs.toString()}`;
+  }, [orgId, orgName, orgListPage]);
 
   const [isManageSidebarOpen, setIsManageSidebarOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -74,16 +84,14 @@ const EventManagePage = () => {
   useEffect(() => {
     // Payout uses org-console APIs and is not available for admin monitoring.
     if (section === "payout") {
-      const qs = orgId ? `?orgId=${encodeURIComponent(orgId)}` : "";
-      navigate(`/events/manage/${eventId}/overview${qs}`, { replace: true });
+      navigate(`/events/manage/${eventId}/overview${buildOrgQueryString()}`, { replace: true });
       return;
     }
     setCurrentSection(section || "overview");
-  }, [section, eventId, orgId, navigate]);
+  }, [section, eventId, buildOrgQueryString, navigate]);
 
   const navigateToManageSection = (sectionName) => {
-    const qs = orgId ? `?orgId=${encodeURIComponent(orgId)}` : "";
-    navigate(`/events/manage/${eventId}/${sectionName}${qs}`);
+    navigate(`/events/manage/${eventId}/${sectionName}${buildOrgQueryString()}`);
     if (window.innerWidth <= 768 && isManageSidebarOpen) {
       setIsManageSidebarOpen(false);
     }
@@ -91,7 +99,13 @@ const EventManagePage = () => {
 
   const handleBack = () => {
     if (orgId) {
-      navigate("/", { state: { selectedOrgId: Number(orgId) || orgId } });
+      navigate("/", {
+        state: {
+          selectedOrgId: Number(orgId) || orgId,
+          selectedOrgName: orgName || null,
+          orgListPage: orgListPage != null ? Number(orgListPage) : 0,
+        },
+      });
       return;
     }
     navigate("/");
@@ -101,10 +115,18 @@ const EventManagePage = () => {
     ? getPublishedEventTimingStatus(eventData)
     : "DRAFT";
 
+  const goToOrdersAndAttendees = () => navigateToManageSection("ordersAndAttendees");
+
   const renderCurrentSection = () => {
     switch (currentSection) {
       case "overview":
-        return <OverviewSection dashboardData={dashboardData} eventData={eventData} />;
+        return (
+          <OverviewSection
+            dashboardData={dashboardData}
+            eventData={eventData}
+            onViewAllOrders={goToOrdersAndAttendees}
+          />
+        );
       case "ordersAndAttendees":
         return <OrdersAndAttendeesSection eventId={eventId} viewOnly={VIEW_ONLY} />;
       case "eventPage":
@@ -114,7 +136,13 @@ const EventManagePage = () => {
       case "discounts":
         return <DiscountSection viewOnly={VIEW_ONLY} />;
       default:
-        return <OverviewSection dashboardData={dashboardData} eventData={eventData} />;
+        return (
+          <OverviewSection
+            dashboardData={dashboardData}
+            eventData={eventData}
+            onViewAllOrders={goToOrdersAndAttendees}
+          />
+        );
     }
   };
 

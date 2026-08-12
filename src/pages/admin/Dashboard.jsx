@@ -10,6 +10,7 @@ import EventList from "./EventList";
 export default function Dashboard() {
   const location = useLocation();
   const [selectedOrg, setSelectedOrg] = useState(null);
+  const [orgListPage, setOrgListPage] = useState(0);
 
   useEffect(() => {
     const fromManage = location.state?.selectedOrgId;
@@ -19,6 +20,9 @@ export default function Dashboard() {
         name: location.state?.selectedOrgName || null,
       });
     }
+    if (typeof location.state?.orgListPage === "number") {
+      setOrgListPage(location.state.orgListPage);
+    }
   }, [location.state]);
 
   if (selectedOrg) {
@@ -26,10 +30,17 @@ export default function Dashboard() {
       <EventList
         orgId={selectedOrg.id}
         orgName={selectedOrg.name}
+        orgListPage={orgListPage}
         onBack={() => setSelectedOrg(null)}
       />
     );
   }
 
-  return <OrganizationList onSelectOrg={setSelectedOrg} />;
+  return (
+    <OrganizationList
+      page={orgListPage}
+      onPageChange={setOrgListPage}
+      onSelectOrg={setSelectedOrg}
+    />
+  );
 }
