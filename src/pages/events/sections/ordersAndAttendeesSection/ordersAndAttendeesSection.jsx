@@ -98,7 +98,7 @@ const OrdersAndAttendeesSection = ({ eventId, viewOnly = false }) => {
           orderDate: format(new Date(order.orderTime), 'dd MMM yyyy hh:mm a'),
           purchaseDate: format(new Date(order.orderTime), 'dd MMM yyyy hh:mm a'),
           ticketType: order.tickets.length > 0 ? order.tickets[0].ticketType : 'N/A',
-          amount: order.totalAmount || 0,
+          amount: order.grandTotal || 0,
           discount: order.discountCode || '',
           attendees: order.tickets
             .filter((t) => !t.donation)
@@ -107,8 +107,24 @@ const OrdersAndAttendeesSection = ({ eventId, viewOnly = false }) => {
               donationNote: t.donationNote,
               ticketType: t.ticketType,
             })),
-          paymentMethod: 'Stripe',
+          paymentMethod: order.paymentMethodType === 'afterpay_clearpay'
+            ? 'Afterpay'
+            : order.isInternational
+              ? 'International card'
+              : 'Domestic card',
           tickets: order.tickets,
+          refundPolicy: order.refundPolicySnapshot || '',
+          feeBreakdown: {
+            ticketFaceValue: order.ticketFaceValue || 0,
+            grandTotal: order.grandTotal || 0,
+            platformFee: order.platformFee || 0,
+            gstOnPlatformFee: order.gstOnPlatformFee || 0,
+            afterpayFeeExGst: order.afterpayFeeExGst || 0,
+            afterpayGst: order.afterpayGst || 0,
+            internationalFeeExGst: order.internationalFeeExGst || 0,
+            internationalGst: order.internationalGst || 0,
+            netToOrganiser: order.netToOrganiser || 0,
+          },
         }));
         setOrders(formattedOrders);
       } catch (err) {

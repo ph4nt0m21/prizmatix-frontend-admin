@@ -1,0 +1,43 @@
+.earningsCard {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 20px 24px;
+  margin: 0 0 20px;
+}
+
+.title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 16px;
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+.statTile {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.statLabel {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.statValue {
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.errorMessage {
+  color: #dc2626;
+  font-size: 13px;
+  margin-bottom: 16px;
+}

@@ -327,6 +327,26 @@ export default function RevenuePage() {
     return payouts.filter((p) => p.status === payoutStatusFilter);
   }, [payouts, payoutStatusFilter]);
 
+  const payoutSummary = useMemo(() => {
+    const activeEventIds = new Set(
+      payouts.filter((p) => !p.eventFinished).map((p) => p.eventId)
+    );
+    const finishedPendingEventIds = new Set(
+      payouts.filter((p) => p.eventFinished && p.status === "PENDING").map((p) => p.eventId)
+    );
+    const advanceRequestCount = payouts.filter((p) => p.payoutType === "ADVANCE").length;
+    const pendingAmount = payouts
+      .filter((p) => p.status === "PENDING")
+      .reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+
+    return {
+      activeEvents: activeEventIds.size,
+      finishedEventsPendingPayout: finishedPendingEventIds.size,
+      advanceRequestCount,
+      pendingAmount,
+    };
+  }, [payouts]);
+
   // ---------- Payout actions (super admin) ----------
   function handleCancelPayout(id) {
     setActionLoadingId(id);
@@ -628,22 +648,22 @@ export default function RevenuePage() {
           <div className={styles.payoutCardRow}>
             <div className={styles.summaryCard}>
               <div>Active events</div>
-              <h3>02</h3>
+              <h3>{String(payoutSummary.activeEvents).padStart(2, "0")}</h3>
             </div>
 
             <div className={styles.summaryCard}>
               <div>Finished Events Pending payout</div>
-              <h3>02</h3>
+              <h3>{String(payoutSummary.finishedEventsPendingPayout).padStart(2, "0")}</h3>
             </div>
 
             <div className={styles.summaryCard}>
               <div>Advance Payout requests</div>
-              <h3>02</h3>
+              <h3>{String(payoutSummary.advanceRequestCount).padStart(2, "0")}</h3>
             </div>
 
             <div className={styles.summaryCard}>
               <div>Pending Payout amount</div>
-              <h3>$ 12123</h3>
+              <h3>{formatAmount(payoutSummary.pendingAmount)}</h3>
             </div>
           </div>
 

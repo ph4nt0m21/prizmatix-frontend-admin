@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Cookies from 'js-cookie';
-import { GetAllOrganizationEventsAPI, DeleteEventAPI, GetEventStatusAPI, GetEventDashboardAPI } from '../../services/allApis';
+import { toast } from 'react-toastify';
+import { GetAllOrganizationEventsAPI, DeleteEventAPI, RestoreEventAPI, GetEventStatusAPI, GetEventDashboardAPI } from '../../services/allApis';
 import LoadingSpinner from '../../components/common/loadingSpinner/loadingSpinner';
 import EventHeaderNav from '../../pages/events/components/eventHeaderNav'; // Adjust path if necessary
 import styles from './eventsPage.module.scss';
@@ -22,12 +23,16 @@ const EventsPage = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [eventToDelete, setEventToDelete] = useState(null);
 
-  const filterOptions = ['All Events', 'Live Events', 'Drafts', 'Past'];
+  const filterOptions = ['All Events', 'Live Events', 'Drafts', 'Past', 'Deleted'];
   const userId = Cookies.get('userId');
 
-  const liveCount = events.filter(event => event.status === 'Live').length;
-  const draftCount = events.filter(event => event.status === 'Draft').length;
-  const pastCount = events.filter(event => event.status === 'Past').length;
+  const isPendingDeletion = (event) => Boolean(event?.pendingDeletionAt);
+  const activeEvents = events.filter((event) => !isPendingDeletion(event));
+
+  const liveCount = activeEvents.filter(event => event.status === 'Live').length;
+  const draftCount = activeEvents.filter(event => event.status === 'Draft').length;
+  const pastCount = activeEvents.filter(event => event.status === 'Past').length;
+  const deletedCount = events.filter(isPendingDeletion).length;
 
   useEffect(() => {
     fetchEvents();
@@ -73,7 +78,9 @@ const EventsPage = () => {
             const isPublished = statusResponse.data?.step8Completed || false;
 
             let status = 'Draft';
-            if (isPublished) {
+            if (event.pendingDeletionAt) {
+              status = 'Deleted';
+            } else if (isPublished) {
               const now = new Date();
               const eventEndDate = event.endDate ? new Date(event.endDate) : new Date(event.startDate);
               status = eventEndDate < now ? 'Past' : 'Live';
@@ -111,12 +118,17 @@ const EventsPage = () => {
   const applyFilters = () => {
     let filtered = [...events];
 
-    if (currentFilter === 'Live Events') {
-      filtered = filtered.filter(event => event.status === 'Live');
-    } else if (currentFilter === 'Drafts') {
-      filtered = filtered.filter(event => event.status === 'Draft');
-    } else if (currentFilter === 'Past') {
-      filtered = filtered.filter(event => event.status === 'Past');
+    if (currentFilter === 'Deleted') {
+      filtered = filtered.filter(isPendingDeletion);
+    } else {
+      filtered = filtered.filter((event) => !isPendingDeletion(event));
+      if (currentFilter === 'Live Events') {
+        filtered = filtered.filter(event => event.status === 'Live');
+      } else if (currentFilter === 'Drafts') {
+        filtered = filtered.filter(event => event.status === 'Draft');
+      } else if (currentFilter === 'Past') {
+        filtered = filtered.filter(event => event.status === 'Past');
+      }
     }
 
     if (searchQuery.trim()) {
@@ -141,8 +153,9 @@ const EventsPage = () => {
     navigate('/events/create/');
   };
 
-  const handleViewEvent = (eventId) => {
-    navigate(`/events/manage/${eventId}/overview`);
+  const handleViewEvent = (event) => {
+    if (isPendingDeletion(event)) return;
+    navigate(`/events/manage/${event.id}/overview`);
   };
 
   const handleToggleMenu = (e, eventId) => {
@@ -162,6 +175,19 @@ const EventsPage = () => {
     setOpenMenuId(null);
   };
 
+  const handleRestoreClick = async (e, event) => {
+    e.stopPropagation();
+    setOpenMenuId(null);
+    try {
+      await RestoreEventAPI(event.id);
+      toast.success('Event restored successfully');
+      fetchEvents();
+    } catch (err) {
+      console.error('Failed to restore event:', err);
+      toast.error(err.response?.data || err.response?.data?.message || 'Failed to restore the event.');
+    }
+  };
+
   const confirmDeleteEvent = async () => {
     if (!eventToDelete) return;
     try {
@@ -172,12 +198,21 @@ const EventsPage = () => {
         return;
       }
       await DeleteEventAPI(eventToDelete.id, currentUserId);
-      setEvents(prevEvents => prevEvents.filter(e => e.id !== eventToDelete.id));
+      const pendingAt = new Date().toISOString();
+      setEvents((prevEvents) =>
+        prevEvents.map((e) =>
+          e.id === eventToDelete.id
+            ? { ...e, pendingDeletionAt: pendingAt, isActive: false, status: 'Deleted' }
+            : e
+        )
+      );
+      toast.success('Event moved to Deleted. You can restore it within 30 days.');
       setShowDeleteConfirm(false);
       setEventToDelete(null);
+      setCurrentFilter('Deleted');
     } catch (err) {
       console.error('Failed to delete event:', err);
-      setError(err.response?.data?.message || 'Failed to delete the event.');
+      toast.error(err.response?.data || err.response?.data?.message || 'Failed to delete the event.');
       setShowDeleteConfirm(false);
     }
   };
@@ -187,6 +222,7 @@ const EventsPage = () => {
       case 'Live': return styles.liveBadge;
       case 'Draft': return styles.draftBadge;
       case 'Past': return styles.pastBadge;
+      case 'Deleted': return styles.deletedBadge;
       default: return '';
     }
   };
@@ -247,10 +283,11 @@ const EventsPage = () => {
             {filterOptions.map(filter => {
               let count;
               switch (filter) {
-                case 'All Events': count = events.length; break;
+                case 'All Events': count = activeEvents.length; break;
                 case 'Live Events': count = liveCount; break;
                 case 'Drafts': count = draftCount; break;
                 case 'Past': count = pastCount; break;
+                case 'Deleted': count = deletedCount; break;
                 default: count = 0;
               }
               return (
@@ -283,7 +320,7 @@ const EventsPage = () => {
               filteredEvents.map(event => {
                 const date = formatEventDate(event);
                 return (
-                  <div key={event.id} className={styles.eventRow} onClick={() => handleViewEvent(event.id)}>
+                  <div key={event.id} className={styles.eventRow} onClick={() => handleViewEvent(event)}>
                     <div className={styles.eventInfoCell}>
                       <div className={styles.dateBlock}>
                         <span className={styles.dateMonth}>{date.month}</span>
@@ -337,8 +374,14 @@ const EventsPage = () => {
 
                         {openMenuId === event.id && (
                           <div className={styles.actionsMenu}>
-                            <button onClick={(e) => handleEditEvent(e, event.id)}>Edit</button>
-                            <button onClick={(e) => handleDeleteClick(e, event)} className={styles.deleteAction}>Delete</button>
+                            {isPendingDeletion(event) ? (
+                              <button onClick={(e) => handleRestoreClick(e, event)}>Restore</button>
+                            ) : (
+                              <>
+                                <button onClick={(e) => handleEditEvent(e, event.id)}>Edit</button>
+                                <button onClick={(e) => handleDeleteClick(e, event)} className={styles.deleteAction}>Delete</button>
+                              </>
+                            )}
                           </div>
                         )}
                       </div>
@@ -357,7 +400,11 @@ const EventsPage = () => {
           <div className={styles.deleteModalOverlay}>
             <div className={styles.deleteModal}>
               <h3>Confirm Deletion</h3>
-              <p>Are you sure you want to delete the event "{eventToDelete?.name}"? This action cannot be undone.</p>
+              <p>
+                Are you sure you want to delete the event &quot;{eventToDelete?.name}&quot;?
+                It will move to Deleted for 30 days and can be restored during that time.
+                After 30 days it will be permanently removed from your lists.
+              </p>
               <div className={styles.deleteModalActions}>
                 <button onClick={() => setShowDeleteConfirm(false)} className={styles.cancelButton}>Cancel</button>
                 <button onClick={confirmDeleteEvent} className={styles.confirmDeleteButton}>Delete</button>
