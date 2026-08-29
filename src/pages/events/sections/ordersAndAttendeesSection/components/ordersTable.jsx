@@ -213,6 +213,13 @@ const OrdersTable = ({ viewOnly = false,  orders, onOrderSelect }) => {
       cell: ({ row }) => <span className={styles.ticketType}>{row.original.ticketType}</span>,
     },
     {
+      id: 'amount',
+      accessorFn: (row) => row.amount ?? 0,
+      header: 'TOTAL',
+      enableSorting: true,
+      cell: ({ row }) => <span>${Number(row.original.amount ?? 0).toFixed(2)}</span>,
+    },
+    {
       id: 'download',
       header: '',
       enableSorting: false,

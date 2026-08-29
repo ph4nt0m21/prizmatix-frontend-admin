@@ -69,11 +69,21 @@ export const GetAllOrganizationEventsAPI = async (organizationId) => {
   return await apiClient.get(`/api/events/organization/${organizationId}`);
 };
 
+// Super-admin: earnings overview for a given organisation (any org, not just the caller's own)
+export const GetOrganizationEarningsOverviewAPI = async (organizationId) => {
+  return await apiClient.get(`/orgDashboard/admin/organizations/${organizationId}/overview`);
+};
+
 // Delete an event
 export const DeleteEventAPI = async (eventId, userId) => {
   return await apiClient.delete(`/api/events/${eventId}`, {
     params: { userId }
   });
+};
+
+// Restore an event from the Deleted box within 30 days
+export const RestoreEventAPI = async (eventId) => {
+  return await apiClient.post(`/api/events/${eventId}/restore`);
 };
 
 // Update event status

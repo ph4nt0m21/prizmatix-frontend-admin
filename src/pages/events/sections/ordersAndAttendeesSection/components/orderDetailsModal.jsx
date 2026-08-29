@@ -35,6 +35,66 @@ const OrderDetailsModal = ({ order, onClose }) => {
             </div>
           </div>
 
+          {/* Financial Breakdown */}
+          {order.feeBreakdown && (
+            <div className={styles.section}>
+              <div className={styles.sectionHeader}>
+                <h4>Financial Breakdown</h4>
+              </div>
+              <div className={styles.detailBlock}>
+                <div className={styles.detailItem}>
+                  <span>Ticket face value</span>
+                  <strong>${order.feeBreakdown.ticketFaceValue.toFixed(2)}</strong>
+                </div>
+                <div className={styles.detailItem}>
+                  <span>Platform/gateway fee (buyer-paid)</span>
+                  <strong>${order.feeBreakdown.platformFee.toFixed(2)}</strong>
+                </div>
+                <div className={styles.detailItem}>
+                  <span>GST on platform fee</span>
+                  <strong>${order.feeBreakdown.gstOnPlatformFee.toFixed(2)}</strong>
+                </div>
+                {order.feeBreakdown.afterpayFeeExGst > 0 && (
+                  <>
+                    <div className={styles.detailItem}>
+                      <span>Afterpay fee (organiser-absorbed)</span>
+                      <strong>${order.feeBreakdown.afterpayFeeExGst.toFixed(2)}</strong>
+                    </div>
+                    <div className={styles.detailItem}>
+                      <span>GST on Afterpay fee</span>
+                      <strong>${order.feeBreakdown.afterpayGst.toFixed(2)}</strong>
+                    </div>
+                  </>
+                )}
+                {order.feeBreakdown.internationalFeeExGst > 0 && (
+                  <>
+                    <div className={styles.detailItem}>
+                      <span>International card fee (organiser-absorbed)</span>
+                      <strong>${order.feeBreakdown.internationalFeeExGst.toFixed(2)}</strong>
+                    </div>
+                    <div className={styles.detailItem}>
+                      <span>GST on international card fee</span>
+                      <strong>${order.feeBreakdown.internationalGst.toFixed(2)}</strong>
+                    </div>
+                  </>
+                )}
+                <div className={styles.detailItem}>
+                  <span>Net to organiser</span>
+                  <strong>${order.feeBreakdown.netToOrganiser.toFixed(2)}</strong>
+                </div>
+                <div className={styles.detailItem}>
+                  <span>Total paid by buyer</span>
+                  <strong>${order.feeBreakdown.grandTotal.toFixed(2)}</strong>
+                </div>
+              </div>
+              {order.refundPolicy && (
+                <p style={{ marginTop: 10, fontSize: 12, color: '#6B7280' }}>
+                  <strong>Refund policy at purchase:</strong> {order.refundPolicy}
+                </p>
+              )}
+            </div>
+          )}
+
           {/* Customer */}
           <div className={styles.section}>
             <div className={styles.sectionHeader}>

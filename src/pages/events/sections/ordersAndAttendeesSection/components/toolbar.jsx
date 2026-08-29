@@ -75,6 +75,16 @@ const Toolbar = ({ activeTab, searchQuery, setSearchQuery, data, currentFilters,
       { label: "Mail", key: "customer.email" },
       { label: "Order Date", key: "orderDate" },
       { label: "Ticket Type", key: "ticketType" },
+      { label: "Payment Method", key: "paymentMethod" },
+      { label: "Ticket Face Value", key: "feeBreakdown.ticketFaceValue" },
+      { label: "Platform Fee", key: "feeBreakdown.platformFee" },
+      { label: "GST on Platform Fee", key: "feeBreakdown.gstOnPlatformFee" },
+      { label: "Afterpay Fee", key: "feeBreakdown.afterpayFeeExGst" },
+      { label: "GST on Afterpay Fee", key: "feeBreakdown.afterpayGst" },
+      { label: "International Card Fee", key: "feeBreakdown.internationalFeeExGst" },
+      { label: "GST on International Card Fee", key: "feeBreakdown.internationalGst" },
+      { label: "Net to Organiser", key: "feeBreakdown.netToOrganiser" },
+      { label: "Total Paid", key: "feeBreakdown.grandTotal" },
     ]
     : isDonationNotesTab
       ? [

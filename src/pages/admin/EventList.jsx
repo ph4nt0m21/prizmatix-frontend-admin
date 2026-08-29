@@ -6,6 +6,7 @@ import {
   GetEventDashboardAPI,
 } from "../../services/allApis";
 import LoadingSpinner from "../../components/common/loadingSpinner/loadingSpinner";
+import OrganizationEarningsOverview from "./organizationEarningsOverview";
 import { getPublishedEventTimingStatus } from "../events/eventStatusUtils";
 import {
   ART_PLACEHOLDER_THUMBNAIL,
@@ -195,6 +196,8 @@ export default function EventList({ orgId, orgName, orgListPage, onBack }) {
           <p className={styles.pageSubtitle}>Events</p>
         </div>
       </div>
+
+      <OrganizationEarningsOverview orgId={orgId} />
 
       <div className={styles.pageWrapper}>
         <aside className={styles.sidebarInnerCard}>
