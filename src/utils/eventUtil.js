@@ -836,6 +836,15 @@ export const mapTicketStructureToStepTicket = (ticket = {}, timezone) => {
 };
 
 /**
+ * Blank/"No Limit"/invalid max purchase stores 0, which every reader treats as no per-order cap.
+ * Sending null instead would trip the backend's default of 10.
+ */
+const parseMaxPurchaseForAPI = (maxPurchaseAmount) => {
+  const parsed = parseInt(maxPurchaseAmount, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+};
+
+/**
  * Map step/modal ticket to API payload. Null listing times use platform defaults at purchase time.
  */
 export const mapStepTicketToApiPayload = (ticket, timezone) => {
@@ -864,9 +873,7 @@ export const mapStepTicketToApiPayload = (ticket, timezone) => {
         : parseInt(ticket.quantity, 10),
     maxPurchasePerOrder: isDonation
       ? null
-      : ticket.maxPurchaseAmount
-        ? parseInt(ticket.maxPurchaseAmount, 10)
-        : 0,
+      : parseMaxPurchaseForAPI(ticket.maxPurchaseAmount),
     currency: "NZD",
     limitedQuantity: isDonation ? false : ticket.quantity !== "No Limit",
     description: ticket.description || null,
@@ -905,19 +912,11 @@ export const prepareTicketsDataForAPI = (tickets, eventId = null, timezone) => {
   return {
     id: parseInt(eventDataId, 10),
     ticketStructures: tickets.map((ticket) => {
-      const isDonation = String(ticket.ticketKind || "").toUpperCase() === "DONATION";
-      const maxPurchase = parseInt(ticket.maxPurchaseAmount, 10);
       const apiTicket = mapStepTicketToApiPayload(ticket, timeZone);
 
       return {
         id: ticket.id || null,
         ...apiTicket,
-        ticketCapacity: apiTicket.ticketCapacity,
-        maxPurchasePerOrder: isDonation
-          ? null
-          : !isNaN(maxPurchase) && maxPurchase > 0
-            ? maxPurchase
-            : 0,
         toBeDeleted: false,
       };
     }),
