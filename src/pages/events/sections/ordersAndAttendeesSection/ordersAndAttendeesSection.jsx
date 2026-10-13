@@ -3,7 +3,7 @@ import styles from './ordersAndAttendeesSection.module.scss';
 import Toolbar from './components/toolbar';
 import OrdersTable from './components/ordersTable';
 import OrderDetailsModal from './components/orderDetailsModal';
-import { GetEventOrdersAPI, GetEventAttendeesAPI, GetEventDonationNotesAPI } from '../../../../services/allApis';
+import { GetEventOrdersAPI, GetEventOrderFinancialsAPI, GetEventAttendeesAPI, GetEventDonationNotesAPI } from '../../../../services/allApis';
 import { FiTag, FiUsers, FiFileText } from 'react-icons/fi';
 import AttendeesTable from './components/attendeesTable';
 import DonationNotesTable from './components/donationNotesTable';
@@ -91,8 +91,19 @@ const OrdersAndAttendeesSection = ({ eventId, viewOnly = false }) => {
   useEffect(() => {
     const fetchOrders = async () => {
       try {
-        const response = await GetEventOrdersAPI(eventId);
+        // Finance data is optional: if it fails, orders still render without it.
+        const [response, financeResponse] = await Promise.all([
+          GetEventOrdersAPI(eventId),
+          GetEventOrderFinancialsAPI(eventId).catch((err) => {
+            console.error('Order financials unavailable:', err);
+            return { data: [] };
+          }),
+        ]);
+        const financeByOrderId = new Map(
+          (financeResponse.data || []).map((f) => [f.orderId, f])
+        );
         const formattedOrders = response.data.map(order => ({
+          finance: financeByOrderId.get(order.orderId) || null,
           id: `#${order.orderId}`,
           customer: { name: `${order.buyerFirstName} ${order.buyerLastName}`, email: order.buyerEmail },
           orderDate: format(new Date(order.orderTime), 'dd MMM yyyy hh:mm a'),

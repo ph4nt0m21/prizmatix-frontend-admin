@@ -170,6 +170,12 @@ export const GetEventOrdersAPI = async (eventId) => {
   return await apiClient.get(`/orgDashboard/admin/events/${eventId}/orders`);
 };
 
+// Super-admin only: per-order Stripe cost, Prizmatix margin and Stripe references.
+// Separate from GetEventOrdersAPI because organisers share that endpoint.
+export const GetEventOrderFinancialsAPI = async (eventId) => {
+  return await apiClient.get(`/admin/finance/events/${eventId}/orders`);
+};
+
 // NEW: API to get all attendees for a specific event
 export const GetEventAttendeesAPI = async (eventId) => {
   return await apiClient.get(`/orgDashboard/admin/events/${eventId}/attendees`);

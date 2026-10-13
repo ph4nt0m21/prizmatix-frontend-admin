@@ -2,6 +2,17 @@ import React from 'react';
 import styles from './orderDetailsModal.module.scss';
 import { FiX, FiDownload } from 'react-icons/fi';
 
+const money = (value) =>
+  value != null && !Number.isNaN(Number(value)) ? `$${Number(value).toFixed(2)}` : '—';
+
+const ReferenceRow = ({ label, value }) =>
+  value ? (
+    <div className={styles.detailItem}>
+      <span>{label}</span>
+      <strong style={{ fontFamily: 'monospace', fontSize: 12, wordBreak: 'break-all' }}>{value}</strong>
+    </div>
+  ) : null;
+
 const OrderDetailsModal = ({ order, onClose }) => {
   if (!order) return null;
 
@@ -92,6 +103,49 @@ const OrderDetailsModal = ({ order, onClose }) => {
                   <strong>Refund policy at purchase:</strong> {order.refundPolicy}
                 </p>
               )}
+            </div>
+          )}
+
+          {/* Stripe & Prizmatix — super-admin only data, from /admin/finance */}
+          {order.finance && (
+            <div className={styles.section}>
+              <div className={styles.sectionHeader}>
+                <h4>Stripe &amp; Prizmatix</h4>
+              </div>
+              <div className={styles.detailBlock}>
+                <div className={styles.detailItem}>
+                  <span>Prizmatix service fee (incl. GST)</span>
+                  <strong>{money(order.finance.prizmatixServiceFee)}</strong>
+                </div>
+                {Number(order.finance.feesRecoveredFromOrganiser) > 0 && (
+                  <div className={styles.detailItem}>
+                    <span>Fees recovered from organiser (est.)</span>
+                    <strong>{money(order.finance.feesRecoveredFromOrganiser)}</strong>
+                  </div>
+                )}
+                <div className={styles.detailItem}>
+                  <span>Actual Stripe fee</span>
+                  <strong>
+                    {order.finance.stripeFee != null ? `− ${money(order.finance.stripeFee)}` : 'Not recorded yet'}
+                  </strong>
+                </div>
+                {Number(order.finance.stripeFeeTax) > 0 && (
+                  <div className={styles.detailItem}>
+                    <span>of which GST on Stripe fee</span>
+                    <strong>{money(order.finance.stripeFeeTax)}</strong>
+                  </div>
+                )}
+                <div className={styles.detailItem}>
+                  <span>Prizmatix net</span>
+                  <strong>{order.finance.prizmatixNet != null ? money(order.finance.prizmatixNet) : '—'}</strong>
+                </div>
+              </div>
+              <div className={styles.detailBlock} style={{ marginTop: 10 }}>
+                <ReferenceRow label="Organisation ID" value={order.finance.organizationId} />
+                <ReferenceRow label="Stripe PaymentIntent" value={order.finance.stripePaymentIntentId} />
+                <ReferenceRow label="Stripe Charge" value={order.finance.stripeChargeId} />
+                <ReferenceRow label="Checkout Session" value={order.finance.stripeSessionId} />
+              </div>
             </div>
           )}
 
