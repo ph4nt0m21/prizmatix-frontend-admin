@@ -81,6 +81,16 @@ const EventManagePage = () => {
     fetchEventData();
   }, [fetchEventData]);
 
+  // Refresh only the dashboard (no full-page spinner) after a payout is recorded.
+  const refreshDashboard = useCallback(async () => {
+    try {
+      const dashboardRes = await GetEventDashboardAPI(eventId);
+      setDashboardData(dashboardRes.data);
+    } catch (refreshError) {
+      console.error("Error refreshing dashboard:", refreshError);
+    }
+  }, [eventId]);
+
   useEffect(() => {
     // Payout uses org-console APIs and is not available for admin monitoring.
     if (section === "payout") {
@@ -122,9 +132,11 @@ const EventManagePage = () => {
       case "overview":
         return (
           <OverviewSection
+            eventId={eventId}
             dashboardData={dashboardData}
             eventData={eventData}
             onViewAllOrders={goToOrdersAndAttendees}
+            onPayoutRecorded={refreshDashboard}
           />
         );
       case "ordersAndAttendees":
@@ -138,9 +150,11 @@ const EventManagePage = () => {
       default:
         return (
           <OverviewSection
+            eventId={eventId}
             dashboardData={dashboardData}
             eventData={eventData}
             onViewAllOrders={goToOrdersAndAttendees}
+            onPayoutRecorded={refreshDashboard}
           />
         );
     }

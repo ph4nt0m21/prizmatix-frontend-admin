@@ -314,6 +314,13 @@ export const MarkPayoutPaidAPI = async (id) => {
   return await apiClient.post(`/admin/payouts/${id}/mark-paid`);
 };
 
+/** Record a payout already sent to the organiser outside the request flow (saved as PAID). */
+export const RecordManualPayoutAPI = async (eventId, amount) => {
+  return await apiClient.post("/admin/payouts/manual", {
+    eventId: Number(eventId),
+    amount: Number(amount),
+  });
+};
 
 export const GetPayoutOrganizerContactAPI = async (id) => {
   return await apiClient.get(`/admin/payouts/${id}/organizer-contact`);
