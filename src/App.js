@@ -22,6 +22,7 @@ import DashboardPage from "./pages/admin/DashboardPage";
 import UsersPage from "./pages/users/UsersPage";
 import RevenuePage from "./pages/revenue/RevenuePage";
 import ReportsPage from "./pages/reports/ReportsPage";
+import ComplimentaryPage from "./pages/complimentary/ComplimentaryPage";
 
 // Import utilities and components
 import ProtectedRoute from "./security/protectedRoute";
@@ -84,6 +85,7 @@ const AppContent = () => {
               <Route index element={<DashboardPage />} />
               <Route path="users" element={<UsersPage />} />
               <Route path="revenue" element={<RevenuePage />} />
+              <Route path="complimentary" element={<ComplimentaryPage />} />
               <Route path="reports" element={<ReportsPage />} />
               <Route path="events" element={<EventsPage />} />
               <Route path="events/manage/:eventId/:section" element={<EventManagePage />} />

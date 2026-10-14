@@ -16,6 +16,7 @@ import { ReactComponent as HelpIcon } from '../../assets/icons/help-icon.svg';
 import { ReactComponent as SettingsIcon } from '../../assets/icons/settings-icon.svg';
 import { ReactComponent as LogoutIcon } from '../../assets/icons/logout-icon.svg';
 import { ReactComponent as CampaignsIcon } from '../../assets/icons/campaigns-icon.svg';
+import { FiGift } from 'react-icons/fi';
 
 // Import logo
 import logoImage from '../../assets/images/small-logo.svg';
@@ -133,6 +134,7 @@ const SideNavBar = ({ isMobileSidebarOpen, toggleMobileSidebar }) => {
         { id: 'dashboard', path: '/', icon: OverviewIcon, label: 'Dashboard' },
         { id: 'users', path: '/users', icon: CampaignsIcon, label: 'Users' },
         { id: 'revenue', path: '/revenue', icon: ReportsIcon, label: 'Revenue' },
+        { id: 'complimentary', path: '/complimentary', icon: FiGift, label: 'Complimentary' },
         // { id: 'reports', path: '/reports', icon: OverviewIcon, label: 'Reports' }
       ]
     : [])

@@ -5,6 +5,7 @@ import Chart from 'react-apexcharts';
 import { format, startOfWeek, startOfMonth, startOfYear, isValid } from 'date-fns';
 import { FiInfo } from 'react-icons/fi';
 import RecentOrdersModal from './recentOrdersModal';
+import MarkPayoutPaidModal from './markPayoutPaidModal';
 import { getPublishedEventTimingStatus } from '../eventStatusUtils';
 
 const toFeeAmount = (value) => {
@@ -24,9 +25,10 @@ const buildAbsorbedFeeBreakdown = (data = {}) => {
   };
 };
 
-const OverviewSection = ({ dashboardData, eventData, onViewAllOrders }) => {
+const OverviewSection = ({ eventId, dashboardData, eventData, onViewAllOrders, onPayoutRecorded }) => {
   // --- All hooks are now at the top level, before any returns ---
   const [isOrdersModalOpen, setOrdersModalOpen] = useState(false);
+  const [isMarkPaidModalOpen, setMarkPaidModalOpen] = useState(false);
   const [salesTimeframe, setSalesTimeframe] = useState('Monthly');
   const [isAbsorbedInfoOpen, setAbsorbedInfoOpen] = useState(false);
   const absorbedInfoRef = useRef(null);
@@ -215,6 +217,9 @@ const OverviewSection = ({ dashboardData, eventData, onViewAllOrders }) => {
   const dateString = formatDate(eventData.startDate);
   const eventMetaString = [locationString, dateString === 'N/A' ? null : dateString].filter(Boolean).join(' · ');
 
+  const availablePayout = Number(dashboardData.availablePayout ?? dashboardData.revenue ?? 0);
+  const totalPaidOut = Number(dashboardData.totalPaidOut ?? 0);
+
   return (
     <>
       <div className={styles.overviewContainer}>
@@ -236,9 +241,23 @@ const OverviewSection = ({ dashboardData, eventData, onViewAllOrders }) => {
           <div className={styles.statCard}>
             <p className={styles.statTitle}>Available Payout</p>
             <div className={styles.statValue}>
-              {formatCurrency(dashboardData.availablePayout ?? dashboardData.revenue)}
+              {formatCurrency(availablePayout)}
             </div>
-            <p className={styles.statHint}>Current balance available to withdraw</p>
+            <p className={styles.statHint}>
+              Current balance available to withdraw
+              {totalPaidOut > 0 && ` · ${formatCurrency(totalPaidOut)} already paid out`}
+            </p>
+            {availablePayout > 0 && (
+              <div className={styles.statFooter}>
+                <button
+                  type="button"
+                  className={styles.breakdownLink}
+                  onClick={() => setMarkPaidModalOpen(true)}
+                >
+                  Mark as paid out
+                </button>
+              </div>
+            )}
           </div>
           <div className={styles.statCard}>
             <p className={styles.statTitle}>Tickets Issued</p>
@@ -373,7 +392,7 @@ const OverviewSection = ({ dashboardData, eventData, onViewAllOrders }) => {
                 </div>
               </div>
               <div className={styles.earningsValue}>
-                {formatCurrency(dashboardData.availablePayout ?? dashboardData.revenue)}
+                {formatCurrency(availablePayout)}
               </div>
             </div>
           </div>
@@ -407,14 +426,24 @@ const OverviewSection = ({ dashboardData, eventData, onViewAllOrders }) => {
         orders={dashboardData.recentOrders}
         onViewAllOrders={onViewAllOrders}
       />
+
+      <MarkPayoutPaidModal
+        isOpen={isMarkPaidModalOpen}
+        onClose={() => setMarkPaidModalOpen(false)}
+        eventId={eventId}
+        availablePayout={availablePayout}
+        onRecorded={onPayoutRecorded}
+      />
     </>
   );
 };
 
 OverviewSection.propTypes = {
+  eventId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
   dashboardData: PropTypes.object,
   eventData: PropTypes.object,
   onViewAllOrders: PropTypes.func,
+  onPayoutRecorded: PropTypes.func,
 };
 
 export default OverviewSection;

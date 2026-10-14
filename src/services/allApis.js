@@ -170,6 +170,27 @@ export const GetEventOrdersAPI = async (eventId) => {
   return await apiClient.get(`/orgDashboard/admin/events/${eventId}/orders`);
 };
 
+// Super-admin only: per-order Stripe cost, Prizmatix margin and Stripe references.
+// Separate from GetEventOrdersAPI because organisers share that endpoint.
+export const GetEventOrderFinancialsAPI = async (eventId) => {
+  return await apiClient.get(`/admin/finance/events/${eventId}/orders`);
+};
+
+// Super admin: complimentary tickets across organisations. Resend/revoke/history reuse the
+// event-scoped endpoints, which platform staff are allowed to call for any event.
+export const GetAdminComplimentaryTicketsAPI = async (params = {}) => {
+  return await apiClient.get(`/admin/complimentary-tickets`, { params });
+};
+export const ResendComplimentaryTicketAPI = async (eventId, orderId) => {
+  return await apiClient.post(`/api/events/${eventId}/complimentary-tickets/${orderId}/resend`);
+};
+export const RevokeComplimentaryTicketAPI = async (eventId, orderId) => {
+  return await apiClient.post(`/api/events/${eventId}/complimentary-tickets/${orderId}/revoke`);
+};
+export const GetComplimentaryTicketHistoryAPI = async (eventId, orderId) => {
+  return await apiClient.get(`/api/events/${eventId}/complimentary-tickets/${orderId}/history`);
+};
+
 // NEW: API to get all attendees for a specific event
 export const GetEventAttendeesAPI = async (eventId) => {
   return await apiClient.get(`/orgDashboard/admin/events/${eventId}/attendees`);
@@ -291,6 +312,14 @@ export const CancelPayoutAPI = async (id) => {
 
 export const MarkPayoutPaidAPI = async (id) => {
   return await apiClient.post(`/admin/payouts/${id}/mark-paid`);
+};
+
+/** Record a payout already sent to the organiser outside the request flow (saved as PAID). */
+export const RecordManualPayoutAPI = async (eventId, amount) => {
+  return await apiClient.post("/admin/payouts/manual", {
+    eventId: Number(eventId),
+    amount: Number(amount),
+  });
 };
 
 export const GetPayoutOrganizerContactAPI = async (id) => {
