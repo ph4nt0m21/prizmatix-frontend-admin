@@ -801,14 +801,17 @@ export const mapTicketStructureToStepTicket = (ticket = {}, timezone) => {
     }
   }
 
+  const soldCount = Number(ticket.soldCount) > 0 ? Number(ticket.soldCount) : 0;
+
   return {
     id: ticket.id,
     name: ticket.name || "",
     price: ticket.price ?? "",
+    soldCount,
     quantity: isDonation
       ? "No Limit"
       : ticket.limitedQuantity
-        ? ticket.ticketCapacity
+        ? Number(ticket.ticketCapacity ?? 0) + soldCount
         : "No Limit",
     maxPurchaseAmount: isDonation
       ? ""
@@ -862,6 +865,11 @@ export const mapStepTicketToApiPayload = (ticket, timezone) => {
         .filter((v) => Number.isFinite(v) && v >= 0)
     : [];
 
+  // ticketCapacity is the live *remaining* count that each sale decrements, while the
+  // editor shows the organiser a stable total. Send back the remainder so an untouched
+  // save is a no-op; a total below what's sold goes negative and the backend rejects it.
+  const soldCount = Number(ticket.soldCount) > 0 ? Number(ticket.soldCount) : 0;
+
   return {
     name: ticket.name,
     price: parseFloat(ticket.price),
@@ -870,7 +878,7 @@ export const mapStepTicketToApiPayload = (ticket, timezone) => {
       ? 0
       : ticket.quantity === "No Limit"
         ? 0
-        : parseInt(ticket.quantity, 10),
+        : parseInt(ticket.quantity, 10) - soldCount,
     maxPurchasePerOrder: isDonation
       ? null
       : parseMaxPurchaseForAPI(ticket.maxPurchaseAmount),

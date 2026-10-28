@@ -219,6 +219,8 @@ const TicketsStep = ({
     }
     ticketToDuplicate.name = ticketToDuplicate.name ? `${ticketToDuplicate.name} (Copy)` : '';
     delete ticketToDuplicate.id;
+    // The copy has sold nothing, so its full quantity must reach the API as remaining.
+    ticketToDuplicate.soldCount = 0;
 
     const updatedTickets = [...tickets];
     updatedTickets.splice(index + 1, 0, ticketToDuplicate);
