@@ -1,6 +1,8 @@
 import React from 'react';
 import styles from './orderDetailsModal.module.scss';
 import { FiX, FiDownload } from 'react-icons/fi';
+import RefundBadge from '../../../../../components/common/refundBadge/refundBadge';
+import { orderRefund, ticketRefund } from '../../../../../utils/refundUtil';
 
 const money = (value) =>
   value != null && !Number.isNaN(Number(value)) ? `$${Number(value).toFixed(2)}` : '—';
@@ -168,6 +170,10 @@ const OrderDetailsModal = ({ order, onClose }) => {
           <div className={styles.section}>
             <div className={styles.sectionHeader}>
               <h4>Tickets</h4>
+              <RefundBadge
+                refund={orderRefund(order.refundStatus)}
+                detail={Number(order.amountRefunded) > 0 ? money(order.amountRefunded) : undefined}
+              />
             </div>
             {order.tickets &&
               order.tickets.map((ticket, index) => (
@@ -184,6 +190,14 @@ const OrderDetailsModal = ({ order, onClose }) => {
                       <strong>{ticket.donation ? 'Donator' : 'Attendee'}:</strong>{' '}
                       {ticket.attendeeName || 'N/A'}
                     </div>
+                    {ticket.refundStatus && (
+                      <div style={{ marginTop: 6 }}>
+                        <RefundBadge
+                          refund={ticketRefund(ticket.refundStatus)}
+                          detail={ticket.amount != null ? money(ticket.amount) : undefined}
+                        />
+                      </div>
+                    )}
                     {ticket.donationNote ? (
                       <div style={{ marginTop: 6, whiteSpace: 'pre-wrap', color: '#4B5563', fontSize: 13 }}>
                         <strong>Notes:</strong> {ticket.donationNote}

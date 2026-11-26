@@ -124,6 +124,8 @@ const OrdersAndAttendeesSection = ({ eventId, viewOnly = false }) => {
               ? 'International card'
               : 'Domestic card',
           tickets: order.tickets,
+          refundStatus: order.refundStatus || null,
+          amountRefunded: order.amountRefunded || 0,
           refundPolicy: order.refundPolicySnapshot || '',
           feeBreakdown: {
             ticketFaceValue: order.ticketFaceValue || 0,
