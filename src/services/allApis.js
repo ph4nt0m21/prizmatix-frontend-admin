@@ -191,6 +191,20 @@ export const GetComplimentaryTicketHistoryAPI = async (eventId, orderId) => {
   return await apiClient.get(`/api/events/${eventId}/complimentary-tickets/${orderId}/history`);
 };
 
+// Super admin refunds. Amounts are always decided server-side.
+export const GetAdminRefundsAPI = async () => {
+  return await apiClient.get(`/admin/refunds`);
+};
+export const ProcessRefundAPI = async (requestId) => {
+  return await apiClient.post(`/admin/refunds/${requestId}/process`);
+};
+export const LookupOrderForRefundAPI = async (orderId) => {
+  return await apiClient.get(`/admin/refunds/order-lookup`, { params: { id: orderId } });
+};
+export const RecordStripeRefundAPI = async (body) => {
+  return await apiClient.post(`/admin/refunds/record`, body);
+};
+
 // NEW: API to get all attendees for a specific event
 export const GetEventAttendeesAPI = async (eventId) => {
   return await apiClient.get(`/orgDashboard/admin/events/${eventId}/attendees`);

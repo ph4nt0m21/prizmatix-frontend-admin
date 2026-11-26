@@ -126,6 +126,8 @@ import styles from './ordersTable.module.scss';
 import { FiDownload } from 'react-icons/fi';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import RefundBadge from '../../../../../components/common/refundBadge/refundBadge';
+import { orderRefund } from '../../../../../utils/refundUtil';
 
 const OrdersTable = ({ viewOnly = false,  orders, onOrderSelect }) => {
   const [sorting, setSorting] = useState([]);
@@ -210,7 +212,14 @@ const OrdersTable = ({ viewOnly = false,  orders, onOrderSelect }) => {
       accessorFn: (row) => row.ticketType ?? '',
       header: 'TICKET TYPE',
       enableSorting: true,
-      cell: ({ row }) => <span className={styles.ticketType}>{row.original.ticketType}</span>,
+      cell: ({ row }) => (
+        <>
+          <span className={styles.ticketType}>{row.original.ticketType}</span>
+          <div className={styles.refundBadge}>
+            <RefundBadge refund={orderRefund(row.original.refundStatus)} />
+          </div>
+        </>
+      ),
     },
     {
       id: 'amount',
